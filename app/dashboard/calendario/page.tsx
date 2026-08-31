@@ -36,6 +36,14 @@ export default async function CalendarioPage({
     .eq("status", "attivo")
     .order("full_name");
 
+  const eventIds = (events ?? []).map((e) => e.id);
+  const { data: scriptEsistenti } = eventIds.length
+    ? await supabase.from("script_puntata").select("evento_id").in("evento_id", eventIds)
+    : { data: [] as { evento_id: string }[] };
+  const eventiConScript = (scriptEsistenti ?? []).map((s) => s.evento_id);
+  const isSpeaker = profile.reparto === "speaker";
+  const isRad = profile.ruolo === "rad";
+
   return (
     <CalendarioClient
       anno={anno}
@@ -45,6 +53,10 @@ export default async function CalendarioPage({
       events={events ?? []}
       membri={membri ?? []}
       puoCreare={puoCreare}
+      eventiConScript={eventiConScript}
+      isSpeaker={isSpeaker}
+      isRad={isRad}
+      userId={profile.id}
     />
   );
 }

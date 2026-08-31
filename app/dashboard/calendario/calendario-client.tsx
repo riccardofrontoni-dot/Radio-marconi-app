@@ -15,6 +15,8 @@ type Evento = {
   id: string;
   titolo: string;
   quando: string;
+  fine: string | null;
+  tipo: string;
   membri: string[] | null;
 };
 type Membro = {
@@ -32,6 +34,10 @@ export default function CalendarioClient({
   events,
   membri,
   puoCreare,
+  eventiConScript,
+  isSpeaker,
+  isRad,
+  userId,
 }: {
   anno: number;
   mese: number;
@@ -40,6 +46,10 @@ export default function CalendarioClient({
   events: Evento[];
   membri: Membro[];
   puoCreare: boolean;
+  eventiConScript: string[];
+  isSpeaker: boolean;
+  isRad: boolean;
+  userId: string;
 }) {
   const [giornoAperto, setGiornoAperto] = useState<string | null>(null);
   const [modificaId, setModificaId] = useState<string | null>(null);
@@ -162,8 +172,7 @@ export default function CalendarioClient({
                       whiteSpace: "nowrap", textOverflow: "ellipsis", fontWeight: 500,
                     }}
                   >
-                    {primoMembro ? nomeMembro(primoMembro) : e.titolo}
-                    {(e.membri?.length ?? 0) > 1 ? ` +${(e.membri!.length - 1)}` : ""}
+                    {e.titolo}
                   </div>
                 );
               })}
@@ -179,6 +188,7 @@ export default function CalendarioClient({
       {giornoAperto && (
         <div
           onClick={chiudi}
+          className="overlay-fade"
           style={{
             position: "fixed", inset: 0, background: "rgba(6,11,28,0.6)",
             display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 20,
@@ -186,6 +196,7 @@ export default function CalendarioClient({
         >
           <div
             onClick={(e) => e.stopPropagation()}
+            className="modal-pop"
             style={{
               background: "var(--white)", borderRadius: 20, padding: 26, width: "100%", maxWidth: 500,
               maxHeight: "82vh", overflowY: "auto", boxShadow: "0 30px 70px rgba(0,0,0,0.4)",
@@ -224,6 +235,7 @@ export default function CalendarioClient({
                       <div style={{ fontSize: 14.5, fontWeight: 600 }}>{e.titolo}</div>
                       <div style={{ fontSize: 12.5, color: "var(--gray-text)", marginTop: 3 }}>
                         {new Date(e.quando).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })}
+                        {e.fine && ` – ${new Date(e.fine).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })}`}
                       </div>
                       {e.membri && e.membri.length > 0 && (
                         <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 8 }}>
@@ -238,6 +250,22 @@ export default function CalendarioClient({
                           })}
                         </div>
                       )}
+                      <div style={{ marginTop: 10, display: "flex", gap: 14, flexWrap: "wrap" }}>
+                        {eventiConScript.includes(e.id) ? (
+                          <a href={`/dashboard/script/${e.id}`} style={{ fontSize: 12, fontWeight: 600, color: "var(--blue)" }}>
+                            📄 Script puntata
+                          </a>
+                        ) : (isRad || (isSpeaker && (e.membri ?? []).includes(userId))) ? (
+                          <a href={`/dashboard/script/${e.id}`} style={{ fontSize: 12, fontWeight: 600, color: "var(--gray-text)" }}>
+                            + Crea script
+                          </a>
+                        ) : null}
+                        {e.tipo === "diretta" && eventiConScript.includes(e.id) && (isRad || (isSpeaker && (e.membri ?? []).includes(userId))) && (
+                          <a href={`/dashboard/timer/${e.id}`} style={{ fontSize: 12, fontWeight: 600, color: "var(--blue)" }}>
+                            ⏱ Timer diretta
+                          </a>
+                        )}
+                      </div>
                     </div>
                     {puoCreare && (
                       <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
@@ -293,6 +321,7 @@ function EventoForm({
   onAnnulla: () => void;
 }) {
   const oraDefault = evento ? new Date(evento.quando).toTimeString().slice(0, 5) : "";
+  const oraFineDefault = evento?.fine ? new Date(evento.fine).toTimeString().slice(0, 5) : "";
   const membriDefault = evento?.membri ?? [];
 
   const gruppi = REPARTI.map((r) => ({
@@ -309,15 +338,27 @@ function EventoForm({
         <label style={labelStyle}>Titolo</label>
         <input name="titolo" type="text" required defaultValue={evento?.titolo} placeholder="Es. Diretta Speaker" style={inputStyle} />
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
         <div>
           <label style={labelStyle}>Data</label>
           <input name="data" type="date" required defaultValue={giornoISOdefault} style={inputStyle} />
         </div>
         <div>
-          <label style={labelStyle}>Ora</label>
+          <label style={labelStyle}>Inizio</label>
           <input name="ora" type="time" defaultValue={oraDefault} style={inputStyle} />
         </div>
+        <div>
+          <label style={labelStyle}>Fine</label>
+          <input name="ora_fine" type="time" defaultValue={oraFineDefault} style={inputStyle} />
+        </div>
+      </div>
+      <div>
+        <label style={labelStyle}>Tipo</label>
+        <select name="tipo" defaultValue={evento?.tipo ?? "diretta"} style={inputStyle}>
+          <option value="diretta">Diretta</option>
+          <option value="riunione">Riunione</option>
+          <option value="altro">Altro</option>
+        </select>
       </div>
       <div>
         <label style={labelStyle}>Persone coinvolte</label>

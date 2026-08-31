@@ -34,7 +34,7 @@ export default async function AnalisiPage({
 
   const repartoFiltro = searchParams.reparto ?? "";
 
-  // Eventi (dirette) del mese, con le persone coinvolte.
+  // Eventi (dirette/riunioni) del mese, con le persone coinvolte.
   const { data: eventi } = await supabase
     .from("events")
     .select("id, titolo, quando, membri")
@@ -43,25 +43,33 @@ export default async function AnalisiPage({
 
   const eventIds = (eventi ?? []).map((e) => e.id);
 
-  // Resoconti qualità collegati a quelle dirette.
-  const { data: resoconti } = eventIds.length
-    ? await supabase.from("quality_reports").select("evento_id, voto").in("evento_id", eventIds)
-    : { data: [] as { evento_id: string; voto: number }[] };
+  // Voti individuali (attitudine, professionalità, performance) collegati a quelle dirette.
+  const { data: voti } = eventIds.length
+    ? await supabase.from("voti_membri").select("evento_id, membro_id, attitudine, professionalita, performance").in("evento_id", eventIds)
+    : { data: [] as { evento_id: string; membro_id: string; attitudine: number; professionalita: number; performance: number }[] };
 
-  const votoPerEvento: Record<string, number> = {};
-  (resoconti ?? []).forEach((r) => {
-    if (r.evento_id) votoPerEvento[r.evento_id] = r.voto;
-  });
-
-  // Conteggio dirette e voti per membro.
+  // Conteggio dirette e voti per membro (media dei tre parametri, su tutti i voti ricevuti nel mese).
   const direttePerMembro: Record<string, number> = {};
-  const votiPerMembro: Record<string, number[]> = {};
   (eventi ?? []).forEach((e) => {
-    const voto = votoPerEvento[e.id];
     (e.membri ?? []).forEach((mid: string) => {
       direttePerMembro[mid] = (direttePerMembro[mid] ?? 0) + 1;
-      if (voto !== undefined) (votiPerMembro[mid] ??= []).push(voto);
     });
+  });
+
+  const votiPerMembro: Record<string, number[]> = {};
+  (voti ?? []).forEach((v) => {
+    const media = (v.attitudine + v.professionalita + v.performance) / 3;
+    (votiPerMembro[v.membro_id] ??= []).push(media);
+  });
+
+  // Precisione del timer (quanto gli speaker rispettano i tempi in diretta).
+  const { data: sessioniTimer } = eventIds.length
+    ? await supabase.from("timer_sessioni").select("evento_id, membro_id, precisione").in("evento_id", eventIds)
+    : { data: [] as { evento_id: string; membro_id: string; precisione: number }[] };
+
+  const precisionePerMembro: Record<string, number[]> = {};
+  (sessioniTimer ?? []).forEach((s) => {
+    (precisionePerMembro[s.membro_id] ??= []).push(s.precisione);
   });
 
   // Membri attivi, filtrati per reparto se richiesto.
@@ -74,7 +82,9 @@ export default async function AnalisiPage({
       const dirette = direttePerMembro[m.id] ?? 0;
       const voti = votiPerMembro[m.id] ?? [];
       const votoMedio = voti.length ? voti.reduce((a, b) => a + b, 0) / voti.length : null;
-      return { ...m, dirette, votoMedio, votiCount: voti.length };
+      const precisioni = precisionePerMembro[m.id] ?? [];
+      const puntualita = precisioni.length ? Math.round(precisioni.reduce((a, b) => a + b, 0) / precisioni.length) : null;
+      return { ...m, dirette, votoMedio, votiCount: voti.length, puntualita };
     })
     .sort((a, b) => b.dirette - a.dirette);
 
@@ -148,6 +158,14 @@ export default async function AnalisiPage({
               </div>
               <div style={{ fontSize: 10.5, color: "var(--gray-text)" }}>voto medio</div>
             </div>
+            {m.reparto === "speaker" && (
+              <div style={{ textAlign: "center", minWidth: 76 }}>
+                <div style={{ fontSize: 17, fontWeight: 700, fontFamily: "Georgia, serif", color: "var(--blue)" }}>
+                  {m.puntualita !== null ? `${m.puntualita}%` : "—"}
+                </div>
+                <div style={{ fontSize: 10.5, color: "var(--gray-text)" }}>puntualità</div>
+              </div>
+            )}
           </div>
         ))}
       </div>

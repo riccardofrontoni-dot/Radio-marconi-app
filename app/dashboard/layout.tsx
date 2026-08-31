@@ -44,6 +44,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const isCapo = profile.ruolo === "capo";
   const isRad = profile.ruolo === "rad";
   const isQualita = profile.reparto === "qualita";
+  const isSpeaker = profile.reparto === "speaker";
 
   return (
     <div className="dashboard-shell" style={{ display: "flex", minHeight: "100vh" }}>
@@ -51,6 +52,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         isCapo={isCapo}
         isRad={isRad}
         isQualita={isQualita}
+        isSpeaker={isSpeaker}
         fullName={profile.full_name}
         email={profile.email}
         reparto={profile.reparto}

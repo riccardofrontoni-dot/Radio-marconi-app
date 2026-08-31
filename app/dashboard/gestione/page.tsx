@@ -47,7 +47,7 @@ export default async function GestionePage() {
           </select>
         </div>
         <div>
-          <label style={labelStyle}>Data puntata</label>
+          <label style={labelStyle}>Data</label>
           <input name="puntata_data" type="date" style={inputStyle} />
         </div>
         <button type="submit" className="btn-primary" style={{ fontSize: 13 }}>Assegna</button>
@@ -94,11 +94,13 @@ export default async function GestionePage() {
                       </span>
                     )}
                   </span>
-                  <form action={async () => { "use server"; await deleteTask(t.id); }}>
-                    <button type="submit" style={{ border: "none", background: "none", color: "#c22", fontSize: 11.5, cursor: "pointer" }}>
-                      Elimina
-                    </button>
-                  </form>
+                  {m.id === profile.id && (
+                    <form action={async () => { "use server"; await deleteTask(t.id); }}>
+                      <button type="submit" style={{ border: "none", background: "none", color: "#c22", fontSize: 11.5, cursor: "pointer" }}>
+                        Elimina
+                      </button>
+                    </form>
+                  )}
                 </div>
               ))}
             </div>

@@ -36,6 +36,84 @@ export async function deleteObiettivo(id: string) {
   revalidatePath("/dashboard/obiettivi");
 }
 
+export async function salvaTimerSessione(eventoId: string, dettaglio: { nome: string; pianificato_sec: number; effettivo_sec: number }[], precisione: number) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+
+  await supabase.from("timer_sessioni").upsert(
+    { evento_id: eventoId, membro_id: user.id, dettaglio, precisione },
+    { onConflict: "evento_id,membro_id" }
+  );
+
+  revalidatePath(`/dashboard/timer/${eventoId}`);
+  revalidatePath("/dashboard/calendario");
+}
+
+export async function saveScript(eventoId: string, formData: FormData) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  const titolo = formData.get("titolo") as string;
+  const materiale = formData.get("materiale") as string;
+  const descrizioneBreve = formData.get("descrizione_breve") as string;
+
+  const { data: esistente } = await supabase
+    .from("script_puntata")
+    .select("id")
+    .eq("evento_id", eventoId)
+    .maybeSingle();
+
+  let scriptId: string;
+  if (esistente) {
+    scriptId = esistente.id;
+    await supabase
+      .from("script_puntata")
+      .update({ titolo, materiale, descrizione_breve: descrizioneBreve, aggiornato_il: new Date().toISOString() })
+      .eq("id", scriptId);
+    await supabase.from("script_blocchi").delete().eq("script_id", scriptId);
+  } else {
+    const { data: nuovo } = await supabase
+      .from("script_puntata")
+      .insert({ evento_id: eventoId, titolo, materiale, descrizione_breve: descrizioneBreve, creato_da: user?.id })
+      .select("id")
+      .single();
+    scriptId = nuovo!.id;
+  }
+
+  const tipi = formData.getAll("blocco_tipo") as string[];
+  const nomi = formData.getAll("blocco_nome") as string[];
+  const sottotitoli = formData.getAll("blocco_sottotitolo") as string[];
+  const materiali = formData.getAll("blocco_materiale") as string[];
+  const punti = formData.getAll("blocco_punti") as string[];
+  const durate = formData.getAll("blocco_durata") as string[];
+
+  const righe = tipi.map((tipo, i) => ({
+    script_id: scriptId,
+    ordine: i,
+    tipo,
+    nome: nomi[i] || null,
+    sottotitolo: sottotitoli[i] || null,
+    materiale: materiali[i] || null,
+    punti: punti[i] || null,
+    durata_minuti: Number(durate[i]) || 0,
+  }));
+
+  if (righe.length > 0) {
+    await supabase.from("script_blocchi").insert(righe);
+  }
+
+  revalidatePath(`/dashboard/script/${eventoId}`);
+  revalidatePath("/dashboard/calendario");
+}
+
+export async function deleteScript(scriptId: string, eventoId: string) {
+  const supabase = createClient();
+  await supabase.from("script_puntata").delete().eq("id", scriptId);
+  revalidatePath(`/dashboard/script/${eventoId}`);
+  revalidatePath("/dashboard/calendario");
+}
+
 export async function toggleTask(taskId: string, completato: boolean) {
   const supabase = createClient();
   await supabase.from("tasks").update({ completato: !completato }).eq("id", taskId);
@@ -95,13 +173,18 @@ export async function createEvent(formData: FormData) {
   const titolo = formData.get("titolo") as string;
   const data = formData.get("data") as string; // YYYY-MM-DD
   const ora = formData.get("ora") as string; // HH:MM
+  const oraFine = formData.get("ora_fine") as string; // HH:MM
+  const tipo = (formData.get("tipo") as string) || "diretta";
   const membri = formData.getAll("membri") as string[];
 
   const quando = new Date(`${data}T${ora || "00:00"}:00`).toISOString();
+  const fine = oraFine ? new Date(`${data}T${oraFine}:00`).toISOString() : null;
 
   await supabase.from("events").insert({
     titolo,
     quando,
+    fine,
+    tipo,
     membri,
   });
 
@@ -114,13 +197,16 @@ export async function updateEvent(eventId: string, formData: FormData) {
   const titolo = formData.get("titolo") as string;
   const data = formData.get("data") as string;
   const ora = formData.get("ora") as string;
+  const oraFine = formData.get("ora_fine") as string;
+  const tipo = (formData.get("tipo") as string) || "diretta";
   const membri = formData.getAll("membri") as string[];
 
   const quando = new Date(`${data}T${ora || "00:00"}:00`).toISOString();
+  const fine = oraFine ? new Date(`${data}T${oraFine}:00`).toISOString() : null;
 
   await supabase
     .from("events")
-    .update({ titolo, quando, membri })
+    .update({ titolo, quando, fine, tipo, membri })
     .eq("id", eventId);
 
   revalidatePath("/dashboard/calendario");
@@ -160,20 +246,44 @@ export async function upsertSocialStats(formData: FormData) {
   revalidatePath("/dashboard/social");
 }
 
-export async function submitQualityReport(formData: FormData) {
+export async function salvaVotiEvento(eventoId: string, membriIds: string[], formData: FormData) {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  const eventoId = formData.get("evento_id") as string;
+  const righe = membriIds.map((membroId) => ({
+    evento_id: eventoId,
+    membro_id: membroId,
+    attitudine: Number(formData.get(`attitudine_${membroId}`)),
+    professionalita: Number(formData.get(`professionalita_${membroId}`)),
+    performance: Number(formData.get(`performance_${membroId}`)),
+    votato_da: user?.id,
+    aggiornato_il: new Date().toISOString(),
+  }));
 
-  await supabase.from("quality_reports").insert({
-    puntata_titolo: formData.get("puntata_titolo") as string,
-    punti_di_forza: formData.get("punti_di_forza") as string,
-    criticita: formData.get("criticita") as string,
-    voto: Number(formData.get("voto")),
-    evento_id: eventoId || null,
-    creato_da: user?.id,
-  });
+  await supabase.from("voti_membri").upsert(righe, { onConflict: "evento_id,membro_id" });
+
+  revalidatePath("/dashboard/valutazioni");
+  revalidatePath("/dashboard/analisi");
+  revalidatePath("/dashboard/obiettivi");
+}
+
+export async function upsertQualityReport(eventoId: string, formData: FormData) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  await supabase.from("quality_reports").upsert(
+    {
+      evento_id: eventoId,
+      puntata_titolo: formData.get("puntata_titolo") as string,
+      punti_di_forza: formData.get("punti_di_forza") as string,
+      criticita: formData.get("criticita") as string,
+      voto: Number(formData.get("voto")),
+      creato_da: user?.id,
+      stato: "in_revisione", // ogni modifica torna in revisione per il RAD
+    },
+    { onConflict: "evento_id" }
+  );
 
   revalidatePath("/dashboard/qualita");
+  revalidatePath("/dashboard/resoconti");
 }

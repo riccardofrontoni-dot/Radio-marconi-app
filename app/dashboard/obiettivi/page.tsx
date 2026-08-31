@@ -26,9 +26,9 @@ export default async function ObiettiviPage() {
   const taskCompletati = (tasks ?? []).filter((t) => t.completato).length;
   const percentualeTask = taskTotali ? Math.round((taskCompletati / taskTotali) * 100) : 0;
 
-  const { data: reportsVoto } = await supabase.from("quality_reports").select("voto");
-  const votoMedio = (reportsVoto ?? []).length
-    ? (reportsVoto ?? []).reduce((a, r) => a + r.voto, 0) / (reportsVoto ?? []).length
+  const { data: votiTutti } = await supabase.from("voti_membri").select("attitudine, professionalita, performance");
+  const votoMedio = (votiTutti ?? []).length
+    ? (votiTutti ?? []).reduce((a, v) => a + (v.attitudine + v.professionalita + v.performance) / 3, 0) / (votiTutti ?? []).length
     : 0;
   const percentualeVoto = Math.min(100, Math.round((votoMedio / 5) * 100));
 

@@ -1,10 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
-import { repartoColor } from "@/lib/reparti";
+import { REPARTI, repartoColor, repartoLabel } from "@/lib/reparti";
 
 export default async function HomePage() {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   const { data: profile } = await supabase.from("profiles").select("*").eq("id", user!.id).single();
+
+  const inizioOggi = new Date();
+  inizioOggi.setHours(0, 0, 0, 0);
 
   const { data: tasks } = await supabase
     .from("tasks")
@@ -15,7 +18,7 @@ export default async function HomePage() {
   const { data: nextEvent } = await supabase
     .from("events")
     .select("*")
-    .gte("quando", new Date().toISOString())
+    .gte("quando", inizioOggi.toISOString())
     .order("quando", { ascending: true })
     .limit(1)
     .maybeSingle();
@@ -45,7 +48,11 @@ export default async function HomePage() {
         </div>
       </div>
 
+      <PromemoriaDirette reparto={profile.reparto} userId={profile.id} />
+
       {isCapo && <TeamOverview profile={profile} />}
+
+      <PanoramicaReparti repartoAttuale={profile.reparto} />
 
       <div className="section-label">Il tuo processo</div>
       {(tasks ?? []).length === 0 && (
@@ -78,6 +85,107 @@ export default async function HomePage() {
   );
 }
 
+// Promemoria delle prossime dirette/riunioni del reparto — visibile a tutti.
+async function PromemoriaDirette({ reparto, userId }: { reparto: string; userId: string }) {
+  const supabase = createClient();
+
+  const { data: membriReparto } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("reparto", reparto)
+    .eq("status", "attivo");
+  const membriIds = new Set((membriReparto ?? []).map((m) => m.id));
+
+  const inizioOggi = new Date();
+  inizioOggi.setHours(0, 0, 0, 0);
+
+  const { data: prossimi } = await supabase
+    .from("events")
+    .select("id, titolo, quando, tipo, membri")
+    .gte("quando", inizioOggi.toISOString())
+    .order("quando", { ascending: true })
+    .limit(15);
+
+  const rilevanti = (prossimi ?? [])
+    .filter((e) => (e.membri ?? []).some((mid: string) => membriIds.has(mid)))
+    .slice(0, 3);
+
+  if (rilevanti.length === 0) return null;
+
+  const eventIds = rilevanti.map((e) => e.id);
+  const { data: scriptEsistenti } = eventIds.length
+    ? await supabase.from("script_puntata").select("evento_id").in("evento_id", eventIds)
+    : { data: [] as { evento_id: string }[] };
+  const eventiConScript = new Set((scriptEsistenti ?? []).map((s) => s.evento_id));
+
+  return (
+    <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 12, padding: "14px 16px", marginBottom: 20 }}>
+      <div style={{ fontSize: 12.5, fontWeight: 700, color: "#1E40AF", marginBottom: 8 }}>📅 Dirette in arrivo per il tuo reparto</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        {rilevanti.map((e) => {
+          const seiCoinvolto = (e.membri ?? []).includes(userId);
+          const serveScript = reparto === "speaker" && seiCoinvolto && !eventiConScript.has(e.id);
+          return (
+            <div key={e.id}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, color: "#1E3A8A" }}>
+                <span>{e.titolo}{seiCoinvolto ? " — ci sei tu!" : ""}</span>
+                <span>{new Date(e.quando).toLocaleDateString("it-IT", { weekday: "short", day: "numeric", month: "short" })}</span>
+              </div>
+              {serveScript && (
+                <a href={`/dashboard/script/${e.id}`} style={{ fontSize: 11.5, fontWeight: 700, color: "#B45309" }}>
+                  ⚠ Manca ancora lo script — scrivilo ora →
+                </a>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// Confronto tra reparti sulla percentuale di task completati — competizione sana.
+async function PanoramicaReparti({ repartoAttuale }: { repartoAttuale: string }) {
+  const supabase = createClient();
+  const { data: tuttiTask } = await supabase.from("tasks").select("reparto, completato");
+
+  const righe = REPARTI.map((r) => {
+    const task = (tuttiTask ?? []).filter((t) => t.reparto === r.value);
+    const completati = task.filter((t) => t.completato).length;
+    const percentuale = task.length ? Math.round((completati / task.length) * 100) : 0;
+    return { ...r, percentuale, totale: task.length };
+  }).sort((a, b) => b.percentuale - a.percentuale);
+
+  return (
+    <>
+      <div className="section-label" style={{ marginTop: 0 }}>Come vanno i reparti</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 28 }}>
+        {righe.map((r, i) => {
+          const isMio = r.value === repartoAttuale;
+          return (
+            <div
+              key={r.value}
+              style={{
+                display: "flex", alignItems: "center", gap: 12, padding: "10px 14px",
+                border: isMio ? `1.5px solid ${r.color}` : "1px solid var(--border)",
+                background: isMio ? `${r.color}12` : "var(--white)",
+                borderRadius: 10,
+              }}
+            >
+              <span style={{ fontSize: 12, fontWeight: 700, color: "var(--gray-text)", width: 16 }}>{i + 1}</span>
+              <span style={{ width: 8, height: 8, borderRadius: "50%", background: r.color, flexShrink: 0 }} />
+              <span style={{ fontSize: 12.5, fontWeight: isMio ? 700 : 500, flex: 1 }}>
+                {r.label}{isMio ? " (il tuo)" : ""}
+              </span>
+              <span style={{ fontSize: 12.5, color: "var(--gray-text)" }}>{r.totale === 0 ? "—" : `${r.percentuale}%`}</span>
+            </div>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
 async function TeamOverview({ profile }: { profile: { id: string; reparto: string } }) {
   const supabase = createClient();
 
@@ -102,23 +210,6 @@ async function TeamOverview({ profile }: { profile: { id: string; reparto: strin
     return scadenza <= traDueGiorni;
   });
 
-  const { data: prossimeDirette } = await supabase
-    .from("events")
-    .select("id, titolo, quando, membri")
-    .gte("quando", oggi.toISOString())
-    .order("quando", { ascending: true })
-    .limit(10);
-
-  const membriIds = new Set((membri ?? []).map((m) => m.id));
-  const direttePerReparto = (prossimeDirette ?? [])
-    .filter((e) => (e.membri ?? []).some((mid: string) => membriIds.has(mid)))
-    .slice(0, 3);
-
-  const nomeMembro = (id: string) => {
-    const m = (membri ?? []).find((mm) => mm.id === id);
-    return m ? m.full_name || m.email : null;
-  };
-
   return (
     <>
       <div className="section-label" style={{ marginTop: 0 }}>Il tuo team</div>
@@ -132,34 +223,9 @@ async function TeamOverview({ profile }: { profile: { id: string; reparto: strin
         ))}
         {urgenti.length === 0 && (
           <p style={{ fontSize: 11.5, color: "var(--gray-text)", fontStyle: "italic", margin: "4px 0 0" }}>
-            Compare qui quando un task del reparto non completato ha una data puntata entro 2 giorni.
+            Compare qui quando un task del reparto non completato ha una data entro 2 giorni.
           </p>
         )}
-      </div>
-
-      <div style={{ marginBottom: 18 }}>
-        <div style={{ fontSize: 11.5, fontWeight: 600, color: "var(--gray-text)", marginBottom: 8 }}>Chi è in diretta a breve</div>
-        {direttePerReparto.length === 0 && (
-          <p className="placeholder-note" style={{ marginTop: 0 }}>
-            Nessuna diretta imminente con persone del reparto assegnate.
-          </p>
-        )}
-        {direttePerReparto.map((e) => (
-          <div key={e.id} style={{ display: "flex", justifyContent: "space-between", padding: "9px 14px", background: "var(--light-bg)", borderRadius: 10, marginBottom: 6, fontSize: 12.5 }}>
-            <span>
-              {e.titolo}
-              {(e.membri ?? []).length > 0 && (
-                <span style={{ color: "var(--gray-text)" }}>
-                  {" — "}
-                  {(e.membri ?? []).map(nomeMembro).filter(Boolean).join(", ")}
-                </span>
-              )}
-            </span>
-            <span style={{ color: "var(--gray-text)" }}>
-              {new Date(e.quando).toLocaleDateString("it-IT", { day: "numeric", month: "short" })}
-            </span>
-          </div>
-        ))}
       </div>
 
       <div style={{ fontSize: 11.5, fontWeight: 600, color: "var(--gray-text)", marginBottom: 8 }}>Avanzamento per persona</div>

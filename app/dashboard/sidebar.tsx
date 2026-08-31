@@ -17,6 +17,7 @@ export default function Sidebar({
   isCapo,
   isRad,
   isQualita,
+  isSpeaker,
   fullName,
   email,
   reparto,
@@ -24,6 +25,7 @@ export default function Sidebar({
   isCapo: boolean;
   isRad: boolean;
   isQualita: boolean;
+  isSpeaker: boolean;
   fullName: string | null;
   email: string;
   reparto: string | null;
@@ -65,11 +67,12 @@ export default function Sidebar({
       <NavItem href="/dashboard/materiali" pathname={pathname}>Materiali</NavItem>
       <NavItem href="/dashboard/obiettivi" pathname={pathname}>Obiettivi annui</NavItem>
 
-      {isCapo && (
+      {isSpeaker && (
         <>
           <div className="nav-divider" style={{ height: 1, background: "var(--border)", margin: "14px 8px" }} />
-          <NavLabel>Capo reparto</NavLabel>
-          <NavItem href="/dashboard/gestione" pathname={pathname}>Gestione reparto</NavItem>
+          <NavLabel>Speaker</NavLabel>
+          <NavItem href="/dashboard/script" pathname={pathname}>I miei script</NavItem>
+          <NavItem href="/dashboard/timer" pathname={pathname}>Timer diretta</NavItem>
         </>
       )}
 
@@ -78,6 +81,7 @@ export default function Sidebar({
           <div className="nav-divider" style={{ height: 1, background: "var(--border)", margin: "14px 8px" }} />
           <NavLabel>Qualità</NavLabel>
           <NavItem href="/dashboard/qualita" pathname={pathname}>Resoconto puntata</NavItem>
+          <NavItem href="/dashboard/valutazioni" pathname={pathname}>Valutazioni</NavItem>
         </>
       )}
 
@@ -89,6 +93,8 @@ export default function Sidebar({
           <NavItem href="/dashboard/membri" pathname={pathname}>Membri</NavItem>
           <NavItem href="/dashboard/analisi" pathname={pathname}>Analisi</NavItem>
           <NavItem href="/dashboard/resoconti" pathname={pathname}>Resoconti qualità</NavItem>
+          <NavItem href="/dashboard/valutazioni" pathname={pathname}>Valutazioni</NavItem>
+          <NavItem href="/dashboard/script-archivio" pathname={pathname}>Script puntate</NavItem>
           <NavItem href="/dashboard/social" pathname={pathname}>Social</NavItem>
         </>
       )}
