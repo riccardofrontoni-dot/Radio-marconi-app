@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import Sidebar from "./sidebar";
 import LogoutButton from "./logout-button";
@@ -41,10 +42,25 @@ export default async function DashboardLayout({ children }: { children: React.Re
     );
   }
 
-  const isCapo = profile.ruolo === "capo";
-  const isRad = profile.ruolo === "rad";
-  const isQualita = profile.reparto === "qualita";
-  const isSpeaker = profile.reparto === "speaker";
+  const veroRad = profile.ruolo === "rad";
+  const vistaCookie = cookies().get("vista_rad")?.value;
+  const vistaAttuale = veroRad && vistaCookie ? vistaCookie : "rad";
+
+  let repartoEffettivo = profile.reparto;
+  let ruoloEffettivo = profile.ruolo;
+  if (veroRad && vistaAttuale !== "rad") {
+    const [r, ru] = vistaAttuale.split(":");
+    if (r && ru) {
+      repartoEffettivo = r;
+      ruoloEffettivo = ru;
+    }
+  }
+
+  const isCapo = ruoloEffettivo === "capo";
+  const isRad = ruoloEffettivo === "rad";
+  const isQualita = repartoEffettivo === "qualita";
+  const isSpeaker = repartoEffettivo === "speaker";
+  const isSocial = repartoEffettivo === "social";
 
   return (
     <div className="dashboard-shell" style={{ display: "flex", minHeight: "100vh" }}>
@@ -53,9 +69,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
         isRad={isRad}
         isQualita={isQualita}
         isSpeaker={isSpeaker}
+        isSocial={isSocial}
         fullName={profile.full_name}
         email={profile.email}
-        reparto={profile.reparto}
+        reparto={repartoEffettivo}
+        veroRad={veroRad}
+        vistaAttuale={vistaAttuale}
       />
       <div className="dashboard-main" style={{ flex: 1, padding: "36px 44px", maxWidth: 980, width: "100%" }}>
         {children}

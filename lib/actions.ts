@@ -120,6 +120,7 @@ export async function toggleTask(taskId: string, completato: boolean) {
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/task");
   revalidatePath("/dashboard/gestione");
+  revalidatePath("/dashboard/membri-reparto");
 }
 
 export async function createTask(formData: FormData) {
@@ -141,6 +142,7 @@ export async function createTask(formData: FormData) {
   revalidatePath("/dashboard/gestione");
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/task");
+  revalidatePath("/dashboard/membri-reparto");
 }
 
 export async function deleteTask(taskId: string) {
@@ -149,6 +151,7 @@ export async function deleteTask(taskId: string) {
   revalidatePath("/dashboard/gestione");
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/task");
+  revalidatePath("/dashboard/membri-reparto");
 }
 
 export async function assignProfile(profileId: string, reparto: string, ruolo: string) {
@@ -286,4 +289,120 @@ export async function upsertQualityReport(eventoId: string, formData: FormData) 
 
   revalidatePath("/dashboard/qualita");
   revalidatePath("/dashboard/resoconti");
+}
+
+export async function impostaVistaRad(valore: string) {
+  const { cookies } = await import("next/headers");
+  const store = cookies();
+  if (valore === "rad") {
+    store.delete("vista_rad");
+  } else {
+    store.set("vista_rad", valore, { path: "/", maxAge: 60 * 60 * 24 });
+  }
+  revalidatePath("/dashboard", "layout");
+}
+
+export async function aggiungiPuntoRiunione(eventoId: string, formData: FormData) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const testo = formData.get("testo") as string;
+  if (!testo) return;
+
+  await supabase.from("punti_riunione").insert({ evento_id: eventoId, testo, creato_da: user?.id });
+
+  revalidatePath(`/dashboard/punti-riunione/${eventoId}`);
+  revalidatePath("/dashboard/calendario");
+}
+
+export async function togglePuntoRiunione(id: string, discusso: boolean, eventoId: string) {
+  const supabase = createClient();
+  await supabase.from("punti_riunione").update({ discusso: !discusso }).eq("id", id);
+  revalidatePath(`/dashboard/punti-riunione/${eventoId}`);
+}
+
+export async function eliminaPuntoRiunione(id: string, eventoId: string) {
+  const supabase = createClient();
+  await supabase.from("punti_riunione").delete().eq("id", id);
+  revalidatePath(`/dashboard/punti-riunione/${eventoId}`);
+  revalidatePath("/dashboard/calendario");
+}
+
+export async function inviaAvviso(destinatarioId: string, formData: FormData) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const testo = formData.get("testo") as string;
+  if (!testo) return;
+
+  await supabase.from("avvisi").insert({ destinatario_id: destinatarioId, testo, creato_da: user?.id });
+
+  revalidatePath("/dashboard/membri-reparto");
+  revalidatePath("/dashboard");
+}
+
+export async function segnaAvvisoLetto(id: string) {
+  const supabase = createClient();
+  await supabase.from("avvisi").update({ letto: true }).eq("id", id);
+  revalidatePath("/dashboard");
+}
+
+export async function saveSocialScript(eventoId: string, formData: FormData) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  const titolo = formData.get("titolo") as string;
+
+  const { data: esistente } = await supabase
+    .from("social_script")
+    .select("id")
+    .eq("evento_id", eventoId)
+    .maybeSingle();
+
+  let scriptId: string;
+  if (esistente) {
+    scriptId = esistente.id;
+    await supabase
+      .from("social_script")
+      .update({ titolo, aggiornato_il: new Date().toISOString() })
+      .eq("id", scriptId);
+    await supabase.from("social_script_blocchi").delete().eq("script_id", scriptId);
+  } else {
+    const { data: nuovo } = await supabase
+      .from("social_script")
+      .insert({ evento_id: eventoId, titolo, creato_da: user?.id })
+      .select("id")
+      .single();
+    scriptId = nuovo!.id;
+  }
+
+  const titoli = formData.getAll("blocco_titolo") as string[];
+  const tipi = formData.getAll("blocco_tipo") as string[];
+  const ganci = formData.getAll("blocco_gancio") as string[];
+  const link = formData.getAll("blocco_link") as string[];
+  const corpi = formData.getAll("blocco_corpo") as string[];
+  const cta = formData.getAll("blocco_cta") as string[];
+
+  const righe = titoli.map((titoloBlocco, i) => ({
+    script_id: scriptId,
+    ordine: i,
+    titolo: titoloBlocco || null,
+    tipo: tipi[i] || "format",
+    gancio: ganci[i] || null,
+    link: link[i] || null,
+    corpo: corpi[i] || null,
+    cta: cta[i] || null,
+  }));
+
+  if (righe.length > 0) {
+    await supabase.from("social_script_blocchi").insert(righe);
+  }
+
+  revalidatePath(`/dashboard/social-script/${eventoId}`);
+  revalidatePath("/dashboard/calendario");
+}
+
+export async function deleteSocialScript(scriptId: string, eventoId: string) {
+  const supabase = createClient();
+  await supabase.from("social_script").delete().eq("id", scriptId);
+  revalidatePath(`/dashboard/social-script/${eventoId}`);
+  revalidatePath("/dashboard/calendario");
 }

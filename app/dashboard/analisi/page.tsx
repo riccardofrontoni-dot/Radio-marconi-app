@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { getEffectiveProfile } from "@/lib/vista";
 import { REPARTI, repartoColor, repartoLabel } from "@/lib/reparti";
 
 const MESI = [
@@ -14,7 +15,7 @@ export default async function AnalisiPage({
 }) {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  const { data: profile } = await supabase.from("profiles").select("*").eq("id", user!.id).single();
+  const profile = await getEffectiveProfile(supabase, user!.id);
 
   if (profile.ruolo !== "rad") {
     return (

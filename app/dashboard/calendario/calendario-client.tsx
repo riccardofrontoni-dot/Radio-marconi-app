@@ -35,7 +35,9 @@ export default function CalendarioClient({
   membri,
   puoCreare,
   eventiConScript,
+  eventiConScriptSocial,
   isSpeaker,
+  isSocial,
   isRad,
   userId,
 }: {
@@ -47,7 +49,9 @@ export default function CalendarioClient({
   membri: Membro[];
   puoCreare: boolean;
   eventiConScript: string[];
+  eventiConScriptSocial: string[];
   isSpeaker: boolean;
+  isSocial: boolean;
   isRad: boolean;
   userId: string;
 }) {
@@ -251,19 +255,37 @@ export default function CalendarioClient({
                         </div>
                       )}
                       <div style={{ marginTop: 10, display: "flex", gap: 14, flexWrap: "wrap" }}>
-                        {eventiConScript.includes(e.id) ? (
-                          <a href={`/dashboard/script/${e.id}`} style={{ fontSize: 12, fontWeight: 600, color: "var(--blue)" }}>
-                            📄 Script puntata
-                          </a>
-                        ) : (isRad || (isSpeaker && (e.membri ?? []).includes(userId))) ? (
-                          <a href={`/dashboard/script/${e.id}`} style={{ fontSize: 12, fontWeight: 600, color: "var(--gray-text)" }}>
-                            + Crea script
-                          </a>
-                        ) : null}
+                        {e.tipo === "diretta" && (
+                          eventiConScript.includes(e.id) ? (
+                            <a href={`/dashboard/script/${e.id}`} style={{ fontSize: 12, fontWeight: 600, color: "var(--blue)" }}>
+                              📄 Script puntata
+                            </a>
+                          ) : (isRad || (isSpeaker && (e.membri ?? []).includes(userId))) ? (
+                            <a href={`/dashboard/script/${e.id}`} style={{ fontSize: 12, fontWeight: 600, color: "var(--gray-text)" }}>
+                              + Crea script
+                            </a>
+                          ) : null
+                        )}
                         {e.tipo === "diretta" && eventiConScript.includes(e.id) && (isRad || (isSpeaker && (e.membri ?? []).includes(userId))) && (
                           <a href={`/dashboard/timer/${e.id}`} style={{ fontSize: 12, fontWeight: 600, color: "var(--blue)" }}>
                             ⏱ Timer diretta
                           </a>
+                        )}
+                        {e.tipo === "riunione" && isRad && (
+                          <a href={`/dashboard/punti-riunione/${e.id}`} style={{ fontSize: 12, fontWeight: 600, color: "var(--blue)" }}>
+                            📋 Punti da discutere
+                          </a>
+                        )}
+                        {e.tipo === "registrazione" && (
+                          eventiConScriptSocial.includes(e.id) ? (
+                            <a href={`/dashboard/social-script/${e.id}`} style={{ fontSize: 12, fontWeight: 600, color: "var(--blue)" }}>
+                              📱 Script social
+                            </a>
+                          ) : (isRad || (isSocial && (e.membri ?? []).includes(userId))) ? (
+                            <a href={`/dashboard/social-script/${e.id}`} style={{ fontSize: 12, fontWeight: 600, color: "var(--gray-text)" }}>
+                              + Crea script social
+                            </a>
+                          ) : null
                         )}
                       </div>
                     </div>
@@ -357,6 +379,7 @@ function EventoForm({
         <select name="tipo" defaultValue={evento?.tipo ?? "diretta"} style={inputStyle}>
           <option value="diretta">Diretta</option>
           <option value="riunione">Riunione</option>
+          <option value="registrazione">Giornata di registrazione</option>
           <option value="altro">Altro</option>
         </select>
       </div>

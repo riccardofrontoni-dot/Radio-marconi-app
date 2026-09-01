@@ -1,9 +1,12 @@
 "use client";
 
+import { useTransition } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import LogoutButton from "./logout-button";
+import { impostaVistaRad } from "@/lib/actions";
 
 const REPARTO_LABEL: Record<string, string> = {
   speaker: "Speaker",
@@ -13,24 +16,46 @@ const REPARTO_LABEL: Record<string, string> = {
   qualita: "Qualità",
 };
 
+const OPZIONI_VISTA = [
+  { value: "rad", label: "Io (RAD)" },
+  { value: "speaker:membro", label: "Speaker — Membro" },
+  { value: "speaker:capo", label: "Speaker — Capo" },
+  { value: "social:membro", label: "Social — Membro" },
+  { value: "social:capo", label: "Social — Capo" },
+  { value: "tecnico_video:membro", label: "Tecnico video — Membro" },
+  { value: "tecnico_video:capo", label: "Tecnico video — Capo" },
+  { value: "tecnico_audio:membro", label: "Tecnico audio — Membro" },
+  { value: "tecnico_audio:capo", label: "Tecnico audio — Capo" },
+  { value: "qualita:membro", label: "Qualità — Membro" },
+  { value: "qualita:capo", label: "Qualità — Capo" },
+];
+
 export default function Sidebar({
   isCapo,
   isRad,
   isQualita,
   isSpeaker,
+  isSocial,
   fullName,
   email,
   reparto,
+  veroRad,
+  vistaAttuale,
 }: {
   isCapo: boolean;
   isRad: boolean;
   isQualita: boolean;
   isSpeaker: boolean;
+  isSocial: boolean;
   fullName: string | null;
   email: string;
   reparto: string | null;
+  veroRad: boolean;
+  vistaAttuale: string;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
   const displayName = fullName || email;
   const initials = displayName
     .split(" ")
@@ -40,6 +65,14 @@ export default function Sidebar({
     .toUpperCase();
 
   const badge = isRad ? "RAD" : `${isCapo ? "Capo reparto — " : ""}${REPARTO_LABEL[reparto ?? ""] ?? ""}`;
+  const vistaAttiva = veroRad && vistaAttuale !== "rad";
+
+  function cambiaVista(valore: string) {
+    startTransition(async () => {
+      await impostaVistaRad(valore);
+      router.refresh();
+    });
+  }
 
   return (
     <div
@@ -63,6 +96,7 @@ export default function Sidebar({
       <NavLabel>Il tuo spazio</NavLabel>
       <NavItem href="/dashboard" pathname={pathname}>Home</NavItem>
       <NavItem href="/dashboard/task" pathname={pathname}>Task reparto</NavItem>
+      {isCapo && <NavItem href="/dashboard/membri-reparto" pathname={pathname}>Membri del reparto</NavItem>}
       <NavItem href="/dashboard/calendario" pathname={pathname}>Calendario</NavItem>
       <NavItem href="/dashboard/materiali" pathname={pathname}>Materiali</NavItem>
       <NavItem href="/dashboard/obiettivi" pathname={pathname}>Obiettivi annui</NavItem>
@@ -73,6 +107,14 @@ export default function Sidebar({
           <NavLabel>Speaker</NavLabel>
           <NavItem href="/dashboard/script" pathname={pathname}>I miei script</NavItem>
           <NavItem href="/dashboard/timer" pathname={pathname}>Timer diretta</NavItem>
+        </>
+      )}
+
+      {isSocial && (
+        <>
+          <div className="nav-divider" style={{ height: 1, background: "var(--border)", margin: "14px 8px" }} />
+          <NavLabel>Social</NavLabel>
+          <NavItem href="/dashboard/social-script" pathname={pathname}>I miei script social</NavItem>
         </>
       )}
 
@@ -100,6 +142,28 @@ export default function Sidebar({
       )}
 
       <div className="sidebar-footer" style={{ marginTop: "auto", padding: 10 }}>
+        {vistaAttiva && (
+          <div style={{ background: "#FEF3C7", border: "1px solid #FDE68A", borderRadius: 8, padding: "6px 10px", marginBottom: 10, fontSize: 11, color: "#92400E", fontWeight: 600 }}>
+            👁 Vista di prova attiva
+          </div>
+        )}
+        {veroRad && (
+          <div style={{ marginBottom: 10 }}>
+            <label style={{ fontSize: 10.5, fontWeight: 600, color: "var(--gray-text)", display: "block", marginBottom: 3 }}>
+              Visualizza come
+            </label>
+            <select
+              value={vistaAttuale}
+              onChange={(e) => cambiaVista(e.target.value)}
+              disabled={isPending}
+              style={{ width: "100%", padding: "6px 8px", borderRadius: 7, border: "1px solid var(--border)", fontSize: 11.5, fontFamily: "inherit", background: "var(--white)" }}
+            >
+              {OPZIONI_VISTA.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+          </div>
+        )}
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
           <div
             style={{

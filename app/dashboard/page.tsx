@@ -1,10 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
+import { getEffectiveProfile } from "@/lib/vista";
 import { REPARTI, repartoColor, repartoLabel } from "@/lib/reparti";
+import { segnaAvvisoLetto, toggleTask } from "@/lib/actions";
 
 export default async function HomePage() {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  const { data: profile } = await supabase.from("profiles").select("*").eq("id", user!.id).single();
+  const profile = await getEffectiveProfile(supabase, user!.id);
 
   const inizioOggi = new Date();
   inizioOggi.setHours(0, 0, 0, 0);
@@ -35,6 +37,8 @@ export default async function HomePage() {
         </p>
       </div>
 
+      <AvvisiBanner destinatarioId={profile.id} />
+
       <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12, marginBottom: 28 }}>
         <div className="card">
           <div style={{ fontSize: 12.5, color: "var(--gray-text)", marginBottom: 6 }}>Task da completare</div>
@@ -61,25 +65,34 @@ export default async function HomePage() {
         </p>
       )}
       {(tasks ?? []).map((t) => (
-        <div
+        <form
           key={t.id}
-          style={{
-            display: "flex", alignItems: "center", padding: "12px 14px",
-            border: "1px solid var(--border)", borderRadius: 10, marginBottom: 8, fontSize: 13.5,
+          action={async () => {
+            "use server";
+            await toggleTask(t.id, t.completato);
           }}
         >
-          <span
+          <button
+            type="submit"
             style={{
-              width: 18, height: 18, borderRadius: "50%", marginRight: 12, flexShrink: 0,
-              border: t.completato ? "none" : "1.5px solid var(--border)",
-              background: t.completato ? "var(--blue)" : "transparent",
-              display: "inline-block",
+              display: "flex", alignItems: "center", width: "100%", textAlign: "left",
+              padding: "12px 14px", border: "1px solid var(--border)", borderRadius: 10,
+              marginBottom: 8, fontSize: 13.5, background: "var(--white)", fontFamily: "inherit",
             }}
-          />
-          <span style={{ textDecoration: t.completato ? "line-through" : "none", color: t.completato ? "#a1a1a6" : "var(--dark)" }}>
-            {t.titolo}
-          </span>
-        </div>
+          >
+            <span
+              style={{
+                width: 18, height: 18, borderRadius: "50%", marginRight: 12, flexShrink: 0,
+                border: t.completato ? "none" : "1.5px solid var(--border)",
+                background: t.completato ? "var(--blue)" : "transparent",
+                display: "inline-block",
+              }}
+            />
+            <span style={{ textDecoration: t.completato ? "line-through" : "none", color: t.completato ? "#a1a1a6" : "var(--dark)" }}>
+              {t.titolo}
+            </span>
+          </button>
+        </form>
       ))}
     </div>
   );
@@ -251,5 +264,34 @@ async function TeamOverview({ profile }: { profile: { id: string; reparto: strin
         })}
       </div>
     </>
+  );
+}
+
+// Avvisi non letti mandati dal capo reparto — visibili a chiunque li riceva.
+async function AvvisiBanner({ destinatarioId }: { destinatarioId: string }) {
+  const supabase = createClient();
+  const { data: avvisi } = await supabase
+    .from("avvisi")
+    .select("*")
+    .eq("destinatario_id", destinatarioId)
+    .eq("letto", false)
+    .order("creato_il", { ascending: false });
+
+  if (!avvisi || avvisi.length === 0) return null;
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
+      {avvisi.map((a) => (
+        <div key={a.id} style={{ background: "#FEF3C7", border: "1px solid #FDE68A", borderRadius: 12, padding: "12px 16px", display: "flex", alignItems: "center", gap: 12 }}>
+          <span style={{ fontSize: 16 }}>📣</span>
+          <span style={{ fontSize: 13, color: "#78350F", flex: 1 }}>{a.testo}</span>
+          <form action={async () => { "use server"; await segnaAvvisoLetto(a.id); }}>
+            <button type="submit" style={{ border: "none", background: "rgba(146,64,14,0.12)", color: "#92400E", borderRadius: 7, padding: "4px 10px", fontSize: 11.5, cursor: "pointer", fontWeight: 600 }}>
+              Segna come letto
+            </button>
+          </form>
+        </div>
+      ))}
+    </div>
   );
 }

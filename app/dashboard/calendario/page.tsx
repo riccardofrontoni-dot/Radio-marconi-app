@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getEffectiveProfile } from "@/lib/vista";
 import CalendarioClient from "./calendario-client";
 
 export default async function CalendarioPage({
@@ -8,7 +9,7 @@ export default async function CalendarioPage({
 }) {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  const { data: profile } = await supabase.from("profiles").select("*").eq("id", user!.id).single();
+  const profile = await getEffectiveProfile(supabase, user!.id);
   const puoCreare = profile.ruolo === "capo" || profile.ruolo === "rad";
 
   const today = new Date();
@@ -41,7 +42,14 @@ export default async function CalendarioPage({
     ? await supabase.from("script_puntata").select("evento_id").in("evento_id", eventIds)
     : { data: [] as { evento_id: string }[] };
   const eventiConScript = (scriptEsistenti ?? []).map((s) => s.evento_id);
+
+  const { data: scriptSocialEsistenti } = eventIds.length
+    ? await supabase.from("social_script").select("evento_id").in("evento_id", eventIds)
+    : { data: [] as { evento_id: string }[] };
+  const eventiConScriptSocial = (scriptSocialEsistenti ?? []).map((s) => s.evento_id);
+
   const isSpeaker = profile.reparto === "speaker";
+  const isSocial = profile.reparto === "social";
   const isRad = profile.ruolo === "rad";
 
   return (
@@ -54,7 +62,9 @@ export default async function CalendarioPage({
       membri={membri ?? []}
       puoCreare={puoCreare}
       eventiConScript={eventiConScript}
+      eventiConScriptSocial={eventiConScriptSocial}
       isSpeaker={isSpeaker}
+      isSocial={isSocial}
       isRad={isRad}
       userId={profile.id}
     />
