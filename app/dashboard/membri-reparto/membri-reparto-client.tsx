@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createTask, inviaAvviso, toggleTask, deleteTask } from "@/lib/actions";
 import { repartoColor, repartoLabel } from "@/lib/reparti";
-import TaskStatusPills from "../task/task-status";
+import TaskAccordionList from "../task/task-accordion";
 
 type Membro = { id: string; full_name: string | null; email: string; reparto: string | null };
 type Task = { id: string; titolo: string; completato: boolean; stato: string; assegnato_a: string | null; puntata_data: string | null; descrizione: string | null };
@@ -166,17 +166,7 @@ export default function MembriRepartoClient({
             {taskMembro.length > 0 && (
               <div style={{ marginBottom: 22 }}>
                 <label style={labelStyle}>Task assegnate</label>
-                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  {taskMembro.map((t) => (
-                    <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 8, background: "var(--light-bg)", borderRadius: 10, padding: "8px 10px" }}>
-                      <span style={{ fontSize: 12.5, flex: 1, textDecoration: t.stato === "completata" ? "line-through" : "none", color: t.stato === "completata" ? "#a1a1a6" : "var(--dark)" }}>
-                        {t.titolo}
-                      </span>
-                      <TaskStatusPills taskId={t.id} stato={t.stato ?? (t.completato ? "completata" : "da_fare")} />
-                      <button onClick={() => elimina(t.id)} style={{ border: "none", background: "none", color: "#c22", fontSize: 11, cursor: "pointer" }}>Elimina</button>
-                    </div>
-                  ))}
-                </div>
+                <TaskAccordionList tasks={taskMembro} puoEliminare />
               </div>
             )}
 

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getEffectiveProfile } from "@/lib/vista";
 import { createTask, toggleTask, deleteTask } from "@/lib/actions";
-import TaskStatusPills from "./task-status";
+import TaskAccordionList from "./task-accordion";
 import AssegnazioneRadForm from "./assegnazione-rad-form";
 
 const REPARTI = [
@@ -79,38 +79,10 @@ export default async function TaskPage({
 
       <div className="section-label" style={{ marginTop: 0 }}>Le tue task</div>
 
-      {(tasks ?? []).length === 0 && (
-        <p className="placeholder-note" style={{ marginTop: 0 }}>
-          {filtroMio ? "Nessun task in questa categoria." : "Nessun task ancora assegnato a te."}
-        </p>
-      )}
-
-      {(tasks ?? []).map((t) => (
-        <div
-          key={t.id}
-          style={{
-            display: "flex", alignItems: "center", gap: 10, width: "100%",
-            padding: "12px 14px", border: "1px solid var(--border)", borderRadius: 10,
-            marginBottom: 8, fontSize: 13.5, background: "var(--white)",
-          }}
-        >
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <span style={{ textDecoration: t.stato === "completata" ? "line-through" : "none", color: t.stato === "completata" ? "#a1a1a6" : "var(--dark)" }}>
-              {t.titolo}
-              {t.puntata_data && (
-                <span style={{ color: "var(--gray-text)" }}>
-                  {" — "}{new Date(t.puntata_data).toLocaleDateString("it-IT", { day: "numeric", month: "short" })}
-                </span>
-              )}
-            </span>
-            {!t.assegnato_a && (
-              <div style={{ fontSize: 10.5, color: "var(--gray-text)", marginTop: 2 }}>Task di reparto</div>
-            )}
-          </div>
-          <TaskStatusPills taskId={t.id} stato={t.stato ?? (t.completato ? "completata" : "da_fare")} />
-        </div>
-      ))}
-      <p className="placeholder-note">Clicca un task per segnarlo completato.</p>
+      <TaskAccordionList
+        tasks={tasks ?? []}
+        emptyText={filtroMio ? "Nessun task in questa categoria." : "Nessun task ancora assegnato a te."}
+      />
     </div>
   );
 }
@@ -207,34 +179,9 @@ async function VistaCapo({ profile, filtro }: { profile: { id: string; reparto: 
                 </span>
               </div>
 
-              {taskPersona.map((t) => (
-                <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0" }}>
-                  <form action={async () => { "use server"; await toggleTask(t.id, t.completato); }}>
-                    <button
-                      type="submit"
-                      style={{
-                        width: 16, height: 16, borderRadius: "50%", border: t.completato ? "none" : "1.5px solid var(--border)",
-                        background: t.completato ? "var(--blue)" : "transparent", cursor: "pointer", padding: 0,
-                      }}
-                    />
-                  </form>
-                  <span style={{ fontSize: 12.5, flex: 1, textDecoration: t.completato ? "line-through" : "none", color: t.completato ? "#a1a1a6" : "var(--dark)" }}>
-                    {t.titolo}
-                    {t.puntata_data && (
-                      <span style={{ color: "var(--gray-text)" }}>
-                        {" — "}{new Date(t.puntata_data).toLocaleDateString("it-IT", { day: "numeric", month: "short" })}
-                      </span>
-                    )}
-                  </span>
-                  {m.id === profile.id && (
-                    <form action={async () => { "use server"; await deleteTask(t.id); }}>
-                      <button type="submit" style={{ border: "none", background: "none", color: "#c22", fontSize: 11.5, cursor: "pointer" }}>
-                        Elimina
-                      </button>
-                    </form>
-                  )}
-                </div>
-              ))}
+              {taskPersona.length > 0 && (
+                <TaskAccordionList tasks={taskPersona} puoEliminare={m.id === profile.id} />
+              )}
             </div>
           );
         })}
