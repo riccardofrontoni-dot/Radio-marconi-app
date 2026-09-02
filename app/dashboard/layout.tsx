@@ -62,6 +62,15 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const isSpeaker = repartoEffettivo === "speaker";
   const isSocial = repartoEffettivo === "social";
 
+  let resocontiInAttesa = 0;
+  if (isRad) {
+    const { count } = await supabase
+      .from("quality_reports")
+      .select("id", { count: "exact", head: true })
+      .eq("stato", "in_revisione");
+    resocontiInAttesa = count ?? 0;
+  }
+
   return (
     <div className="dashboard-shell" style={{ display: "flex", minHeight: "100vh" }}>
       <Sidebar
@@ -70,6 +79,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         isQualita={isQualita}
         isSpeaker={isSpeaker}
         isSocial={isSocial}
+        resocontiInAttesa={resocontiInAttesa}
         fullName={profile.full_name}
         email={profile.email}
         reparto={repartoEffettivo}

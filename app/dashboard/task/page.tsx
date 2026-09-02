@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { getEffectiveProfile } from "@/lib/vista";
 import { createTask, toggleTask, deleteTask } from "@/lib/actions";
+import TaskStatusPills from "./task-status";
+import AssegnazioneRadForm from "./assegnazione-rad-form";
 
 const REPARTI = [
   { value: "speaker", label: "Speaker" },
@@ -32,7 +35,7 @@ export default async function TaskPage({
 }) {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  const { data: profile } = await supabase.from("profiles").select("*").eq("id", user!.id).single();
+  const profile = await getEffectiveProfile(supabase, user!.id);
 
   if (profile.ruolo === "rad") {
     return <VistaRad />;
@@ -42,12 +45,12 @@ export default async function TaskPage({
     return <VistaCapo profile={profile} filtro={searchParams.filtro} />;
   }
 
-  // Membro: solo le task assegnate a lui.
+  // Membro: le task assegnate a lui, più quelle assegnate a tutto il reparto (senza persona specifica).
   const { data: tuttiTaskMiei } = await supabase
     .from("tasks")
     .select("*")
     .eq("reparto", profile.reparto)
-    .eq("assegnato_a", profile.id)
+    .or(`assegnato_a.eq.${profile.id},assegnato_a.is.null`)
     .order("created_at", { ascending: true });
 
   const conteggiMiei = { ritardo: 0, urgente: 0, tranquillo: 0 };
@@ -83,29 +86,16 @@ export default async function TaskPage({
       )}
 
       {(tasks ?? []).map((t) => (
-        <form
+        <div
           key={t.id}
-          action={async () => {
-            "use server";
-            await toggleTask(t.id, t.completato);
+          style={{
+            display: "flex", alignItems: "center", gap: 10, width: "100%",
+            padding: "12px 14px", border: "1px solid var(--border)", borderRadius: 10,
+            marginBottom: 8, fontSize: 13.5, background: "var(--white)",
           }}
         >
-          <button
-            type="submit"
-            style={{
-              display: "flex", alignItems: "center", width: "100%", textAlign: "left",
-              padding: "12px 14px", border: "1px solid var(--border)", borderRadius: 10,
-              marginBottom: 8, fontSize: 13.5, background: "var(--white)",
-            }}
-          >
-            <span
-              style={{
-                width: 18, height: 18, borderRadius: "50%", marginRight: 12, flexShrink: 0,
-                border: t.completato ? "none" : "1.5px solid var(--border)",
-                background: t.completato ? "var(--blue)" : "transparent",
-              }}
-            />
-            <span style={{ textDecoration: t.completato ? "line-through" : "none", color: t.completato ? "#a1a1a6" : "var(--dark)" }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ textDecoration: t.stato === "completata" ? "line-through" : "none", color: t.stato === "completata" ? "#a1a1a6" : "var(--dark)" }}>
               {t.titolo}
               {t.puntata_data && (
                 <span style={{ color: "var(--gray-text)" }}>
@@ -113,8 +103,12 @@ export default async function TaskPage({
                 </span>
               )}
             </span>
-          </button>
-        </form>
+            {!t.assegnato_a && (
+              <div style={{ fontSize: 10.5, color: "var(--gray-text)", marginTop: 2 }}>Task di reparto</div>
+            )}
+          </div>
+          <TaskStatusPills taskId={t.id} stato={t.stato ?? (t.completato ? "completata" : "da_fare")} />
+        </div>
       ))}
       <p className="placeholder-note">Clicca un task per segnarlo completato.</p>
     </div>
@@ -315,6 +309,8 @@ async function VistaRad() {
       <p style={{ color: "var(--gray-text)", fontSize: 13, marginBottom: 24 }}>
         Vista completa: ogni reparto, chi ne fa parte, e i task assegnati a ciascuno dai capi reparto.
       </p>
+
+      <AssegnazioneRadForm membri={membri ?? []} />
 
       {REPARTI.map((r) => {
         const membriReparto = (membri ?? []).filter((m) => m.reparto === r.value);

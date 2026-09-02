@@ -38,6 +38,7 @@ export default async function HomePage() {
       </div>
 
       <AvvisiBanner destinatarioId={profile.id} />
+      {profile.ruolo === "rad" && <ResocontiInAttesaBanner />}
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12, marginBottom: 28 }}>
         <div className="card">
@@ -293,5 +294,32 @@ async function AvvisiBanner({ destinatarioId }: { destinatarioId: string }) {
         </div>
       ))}
     </div>
+  );
+}
+
+// Resoconti qualità in attesa di approvazione — visibile solo al RAD.
+async function ResocontiInAttesaBanner() {
+  const supabase = createClient();
+  const { count } = await supabase
+    .from("quality_reports")
+    .select("id", { count: "exact", head: true })
+    .eq("stato", "in_revisione");
+
+  if (!count || count === 0) return null;
+
+  return (
+    <a
+      href="/dashboard/resoconti"
+      style={{
+        display: "flex", alignItems: "center", gap: 12, textDecoration: "none",
+        background: "#FEE2E2", border: "1px solid #FCA5A5", borderRadius: 12, padding: "12px 16px", marginBottom: 20,
+      }}
+    >
+      <span style={{ fontSize: 16 }}>🔴</span>
+      <span style={{ fontSize: 13, color: "#991B1B", flex: 1 }}>
+        {count} {count === 1 ? "resoconto in attesa" : "resoconti in attesa"} di approvazione
+      </span>
+      <span style={{ fontSize: 12, fontWeight: 700, color: "#991B1B" }}>Vai a Resoconti →</span>
+    </a>
   );
 }

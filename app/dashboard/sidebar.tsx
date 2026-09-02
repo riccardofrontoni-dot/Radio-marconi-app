@@ -36,6 +36,7 @@ export default function Sidebar({
   isQualita,
   isSpeaker,
   isSocial,
+  resocontiInAttesa,
   fullName,
   email,
   reparto,
@@ -47,6 +48,7 @@ export default function Sidebar({
   isQualita: boolean;
   isSpeaker: boolean;
   isSocial: boolean;
+  resocontiInAttesa: number;
   fullName: string | null;
   email: string;
   reparto: string | null;
@@ -124,6 +126,7 @@ export default function Sidebar({
           <NavLabel>Qualità</NavLabel>
           <NavItem href="/dashboard/qualita" pathname={pathname}>Resoconto puntata</NavItem>
           <NavItem href="/dashboard/valutazioni" pathname={pathname}>Valutazioni</NavItem>
+          <NavItem href="/dashboard/analisi-puntate" pathname={pathname}>Analisi puntate</NavItem>
         </>
       )}
 
@@ -133,11 +136,24 @@ export default function Sidebar({
           <NavLabel>RAD</NavLabel>
           <NavItem href="/dashboard/admin" pathname={pathname}>Amministrazione</NavItem>
           <NavItem href="/dashboard/membri" pathname={pathname}>Membri</NavItem>
-          <NavItem href="/dashboard/analisi" pathname={pathname}>Analisi</NavItem>
-          <NavItem href="/dashboard/resoconti" pathname={pathname}>Resoconti qualità</NavItem>
-          <NavItem href="/dashboard/valutazioni" pathname={pathname}>Valutazioni</NavItem>
           <NavItem href="/dashboard/script-archivio" pathname={pathname}>Script puntate</NavItem>
           <NavItem href="/dashboard/social" pathname={pathname}>Social</NavItem>
+
+          <div className="nav-divider" style={{ height: 1, background: "var(--border)", margin: "14px 8px" }} />
+          <NavLabel>Analisi</NavLabel>
+          <NavItem href="/dashboard/analisi" pathname={pathname}>Analisi</NavItem>
+          <NavItem href="/dashboard/analisi-puntate" pathname={pathname}>Analisi puntate</NavItem>
+          <NavItem href="/dashboard/resoconti" pathname={pathname}>
+            <span style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
+              Resoconti qualità
+              {resocontiInAttesa > 0 && (
+                <span style={{ background: "#DC2626", color: "#fff", fontSize: 10.5, fontWeight: 700, borderRadius: 999, minWidth: 18, height: 18, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 5px" }}>
+                  {resocontiInAttesa}
+                </span>
+              )}
+            </span>
+          </NavItem>
+          <NavItem href="/dashboard/valutazioni" pathname={pathname}>Valutazioni</NavItem>
         </>
       )}
 

@@ -131,13 +131,23 @@ export async function createTask(formData: FormData) {
   const titolo = formData.get("titolo") as string;
   const assegnatoA = formData.get("assegnato_a") as string;
   const puntataData = formData.get("puntata_data") as string;
+  const descrizione = formData.get("descrizione") as string;
 
   await supabase.from("tasks").insert({
     titolo,
     reparto: profile?.reparto,
     assegnato_a: assegnatoA || null,
     puntata_data: puntataData || null,
+    descrizione: descrizione || null,
   });
+
+  if (assegnatoA) {
+    await supabase.from("avvisi").insert({
+      destinatario_id: assegnatoA,
+      testo: `Nuova task assegnata: "${titolo}"`,
+      creato_da: user?.id,
+    });
+  }
 
   revalidatePath("/dashboard/gestione");
   revalidatePath("/dashboard");
@@ -179,6 +189,7 @@ export async function createEvent(formData: FormData) {
   const oraFine = formData.get("ora_fine") as string; // HH:MM
   const tipo = (formData.get("tipo") as string) || "diretta";
   const membri = formData.getAll("membri") as string[];
+  const descrizione = formData.get("descrizione") as string;
 
   const quando = new Date(`${data}T${ora || "00:00"}:00`).toISOString();
   const fine = oraFine ? new Date(`${data}T${oraFine}:00`).toISOString() : null;
@@ -189,6 +200,7 @@ export async function createEvent(formData: FormData) {
     fine,
     tipo,
     membri,
+    descrizione: descrizione || null,
   });
 
   revalidatePath("/dashboard/calendario");
@@ -203,13 +215,14 @@ export async function updateEvent(eventId: string, formData: FormData) {
   const oraFine = formData.get("ora_fine") as string;
   const tipo = (formData.get("tipo") as string) || "diretta";
   const membri = formData.getAll("membri") as string[];
+  const descrizione = formData.get("descrizione") as string;
 
   const quando = new Date(`${data}T${ora || "00:00"}:00`).toISOString();
   const fine = oraFine ? new Date(`${data}T${oraFine}:00`).toISOString() : null;
 
   await supabase
     .from("events")
-    .update({ titolo, quando, fine, tipo, membri })
+    .update({ titolo, quando, fine, tipo, membri, descrizione: descrizione || null })
     .eq("id", eventId);
 
   revalidatePath("/dashboard/calendario");
@@ -405,4 +418,52 @@ export async function deleteSocialScript(scriptId: string, eventoId: string) {
   await supabase.from("social_script").delete().eq("id", scriptId);
   revalidatePath(`/dashboard/social-script/${eventoId}`);
   revalidatePath("/dashboard/calendario");
+}
+
+export async function impostaStatoTask(taskId: string, stato: "da_fare" | "in_corso" | "completata") {
+  const supabase = createClient();
+  await supabase.from("tasks").update({ stato, completato: stato === "completata" }).eq("id", taskId);
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/task");
+  revalidatePath("/dashboard/gestione");
+  revalidatePath("/dashboard/membri-reparto");
+}
+
+export async function assegnaTaskRad(formData: FormData) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  const titolo = formData.get("titolo") as string;
+  const reparto = formData.get("reparto") as string;
+  const assegnatoA = formData.get("assegnato_a") as string;
+  const descrizione = formData.get("descrizione") as string;
+
+  await supabase.from("tasks").insert({
+    titolo,
+    reparto,
+    assegnato_a: assegnatoA || null,
+    descrizione: descrizione || null,
+  });
+
+  if (assegnatoA) {
+    await supabase.from("avvisi").insert({
+      destinatario_id: assegnatoA,
+      testo: `Nuova task assegnata: "${titolo}"`,
+      creato_da: user?.id,
+    });
+  } else {
+    const { data: membriReparto } = await supabase.from("profiles").select("id").eq("reparto", reparto).eq("status", "attivo");
+    if (membriReparto && membriReparto.length > 0) {
+      await supabase.from("avvisi").insert(
+        membriReparto.map((m) => ({
+          destinatario_id: m.id,
+          testo: `Nuova task per il reparto: "${titolo}"`,
+          creato_da: user?.id,
+        }))
+      );
+    }
+  }
+
+  revalidatePath("/dashboard/task");
+  revalidatePath("/dashboard");
 }
