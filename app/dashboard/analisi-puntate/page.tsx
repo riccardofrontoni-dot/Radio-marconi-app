@@ -16,7 +16,7 @@ export default async function AnalisiPuntatePage({
   const { data: { user } } = await supabase.auth.getUser();
   const profile = await getEffectiveProfile(supabase, user!.id);
 
-  if (profile.ruolo !== "rad" && profile.reparto !== "qualita") {
+  if (profile.ruolo !== "rad" && profile.reparto !== "qualita" && profile.ruolo !== "professore") {
     return (
       <div>
         <h2 style={{ fontSize: 22, marginBottom: 10 }}>Analisi puntate</h2>

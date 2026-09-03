@@ -17,7 +17,7 @@ export default async function AnalisiPage({
   const { data: { user } } = await supabase.auth.getUser();
   const profile = await getEffectiveProfile(supabase, user!.id);
 
-  if (profile.ruolo !== "rad") {
+  if (profile.ruolo !== "rad" && profile.ruolo !== "professore") {
     return (
       <div>
         <h2 style={{ fontSize: 22, marginBottom: 10 }}>Analisi</h2>
@@ -38,7 +38,7 @@ export default async function AnalisiPage({
   // Eventi (dirette/riunioni) del mese, con le persone coinvolte.
   const { data: eventi } = await supabase
     .from("events")
-    .select("id, titolo, quando, membri")
+    .select("id, titolo, quando, tipo, membri")
     .gte("quando", inizioMese.toISOString())
     .lte("quando", fineMese.toISOString());
 
@@ -73,6 +73,24 @@ export default async function AnalisiPage({
     (precisionePerMembro[s.membro_id] ??= []).push(s.precisione);
   });
 
+  // Presenze alle riunioni del sabato.
+  const riunioniIds = (eventi ?? []).filter((e) => e.tipo === "riunione").map((e) => e.id);
+  const { data: presenzeRiunioni } = riunioniIds.length
+    ? await supabase.from("presenze_riunioni").select("evento_id, membro_id, presente").in("evento_id", riunioniIds)
+    : { data: [] as { evento_id: string; membro_id: string; presente: boolean }[] };
+
+  const riunioniAssegnatePerMembro: Record<string, number> = {};
+  (eventi ?? []).forEach((e) => {
+    if (e.tipo !== "riunione") return;
+    (e.membri ?? []).forEach((mid: string) => {
+      riunioniAssegnatePerMembro[mid] = (riunioniAssegnatePerMembro[mid] ?? 0) + 1;
+    });
+  });
+  const presentiPerMembro: Record<string, number> = {};
+  (presenzeRiunioni ?? []).forEach((p) => {
+    if (p.presente) presentiPerMembro[p.membro_id] = (presentiPerMembro[p.membro_id] ?? 0) + 1;
+  });
+
   // Membri attivi, filtrati per reparto se richiesto.
   let query = supabase.from("profiles").select("*").eq("status", "attivo");
   if (repartoFiltro) query = query.eq("reparto", repartoFiltro);
@@ -85,7 +103,9 @@ export default async function AnalisiPage({
       const votoMedio = voti.length ? voti.reduce((a, b) => a + b, 0) / voti.length : null;
       const precisioni = precisionePerMembro[m.id] ?? [];
       const puntualita = precisioni.length ? Math.round(precisioni.reduce((a, b) => a + b, 0) / precisioni.length) : null;
-      return { ...m, dirette, votoMedio, votiCount: voti.length, puntualita };
+      const riunioniAssegnate = riunioniAssegnatePerMembro[m.id] ?? 0;
+      const presenzaRiunioni = riunioniAssegnate ? Math.round(((presentiPerMembro[m.id] ?? 0) / riunioniAssegnate) * 100) : null;
+      return { ...m, dirette, votoMedio, votiCount: voti.length, puntualita, riunioniAssegnate, presenzaRiunioni };
     })
     .sort((a, b) => b.dirette - a.dirette);
 
@@ -165,6 +185,14 @@ export default async function AnalisiPage({
                   {m.puntualita !== null ? `${m.puntualita}%` : "—"}
                 </div>
                 <div style={{ fontSize: 10.5, color: "var(--gray-text)" }}>puntualità</div>
+              </div>
+            )}
+            {m.riunioniAssegnate > 0 && (
+              <div style={{ textAlign: "center", minWidth: 76 }}>
+                <div style={{ fontSize: 17, fontWeight: 700, fontFamily: "Georgia, serif", color: "#8A6D3B" }}>
+                  {m.presenzaRiunioni !== null ? `${m.presenzaRiunioni}%` : "—"}
+                </div>
+                <div style={{ fontSize: 10.5, color: "var(--gray-text)" }}>presenze riunioni</div>
               </div>
             )}
           </div>

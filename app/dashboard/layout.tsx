@@ -49,10 +49,15 @@ export default async function DashboardLayout({ children }: { children: React.Re
   let repartoEffettivo = profile.reparto;
   let ruoloEffettivo = profile.ruolo;
   if (veroRad && vistaAttuale !== "rad") {
-    const [r, ru] = vistaAttuale.split(":");
-    if (r && ru) {
-      repartoEffettivo = r;
-      ruoloEffettivo = ru;
+    if (vistaAttuale === "professore") {
+      repartoEffettivo = null;
+      ruoloEffettivo = "professore";
+    } else {
+      const [r, ru] = vistaAttuale.split(":");
+      if (r && ru) {
+        repartoEffettivo = r;
+        ruoloEffettivo = ru;
+      }
     }
   }
 
@@ -61,6 +66,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const isQualita = repartoEffettivo === "qualita";
   const isSpeaker = repartoEffettivo === "speaker";
   const isSocial = repartoEffettivo === "social";
+  const isProfessore = ruoloEffettivo === "professore";
 
   let resocontiInAttesa = 0;
   if (isRad) {
@@ -79,6 +85,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         isQualita={isQualita}
         isSpeaker={isSpeaker}
         isSocial={isSocial}
+        isProfessore={isProfessore}
         resocontiInAttesa={resocontiInAttesa}
         fullName={profile.full_name}
         email={profile.email}

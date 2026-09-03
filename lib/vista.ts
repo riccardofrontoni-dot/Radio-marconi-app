@@ -13,8 +13,12 @@ export async function getEffectiveProfile(supabase: SupabaseClient, userId: stri
   if (!profile || profile.ruolo !== "rad") return profile;
 
   const store = cookies();
-  const vista = store.get("vista_rad")?.value; // formato "reparto:ruolo", es. "speaker:membro"
+  const vista = store.get("vista_rad")?.value; // "reparto:ruolo", oppure "professore" (nessun reparto)
   if (!vista || vista === "rad") return profile;
+
+  if (vista === "professore") {
+    return { ...profile, reparto: null, ruolo: "professore", vistaAttiva: true };
+  }
 
   const [reparto, ruolo] = vista.split(":");
   if (!reparto || !ruolo) return profile;

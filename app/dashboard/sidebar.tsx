@@ -28,6 +28,7 @@ const OPZIONI_VISTA = [
   { value: "tecnico_audio:capo", label: "Tecnico audio — Capo" },
   { value: "qualita:membro", label: "Qualità — Membro" },
   { value: "qualita:capo", label: "Qualità — Capo" },
+  { value: "professore", label: "Professore" },
 ];
 
 export default function Sidebar({
@@ -36,6 +37,7 @@ export default function Sidebar({
   isQualita,
   isSpeaker,
   isSocial,
+  isProfessore,
   resocontiInAttesa,
   fullName,
   email,
@@ -48,6 +50,7 @@ export default function Sidebar({
   isQualita: boolean;
   isSpeaker: boolean;
   isSocial: boolean;
+  isProfessore: boolean;
   resocontiInAttesa: number;
   fullName: string | null;
   email: string;
@@ -95,13 +98,23 @@ export default function Sidebar({
         </span>
       </div>
 
-      <NavLabel>Il tuo spazio</NavLabel>
-      <NavItem href="/dashboard" pathname={pathname}>Home</NavItem>
-      <NavItem href="/dashboard/task" pathname={pathname}>Task reparto</NavItem>
+      <NavLabel>{isProfessore ? "Andamento" : "Il tuo spazio"}</NavLabel>
+      <NavItem href="/dashboard" pathname={pathname}>{isProfessore ? "Andamento progetto" : "Home"}</NavItem>
+      {!isProfessore && <NavItem href="/dashboard/task" pathname={pathname}>Task reparto</NavItem>}
       {isCapo && <NavItem href="/dashboard/membri-reparto" pathname={pathname}>Membri del reparto</NavItem>}
       <NavItem href="/dashboard/calendario" pathname={pathname}>Calendario</NavItem>
-      <NavItem href="/dashboard/materiali" pathname={pathname}>Materiali</NavItem>
+      {!isProfessore && <NavItem href="/dashboard/materiali" pathname={pathname}>Materiali</NavItem>}
       <NavItem href="/dashboard/obiettivi" pathname={pathname}>Obiettivi annui</NavItem>
+
+      {isProfessore && (
+        <>
+          <div className="nav-divider" style={{ height: 1, background: "var(--border)", margin: "14px 8px" }} />
+          <NavLabel>Professori</NavLabel>
+          <NavItem href="/dashboard/presenze" pathname={pathname}>Presenze</NavItem>
+          <NavItem href="/dashboard/analisi" pathname={pathname}>Analisi</NavItem>
+          <NavItem href="/dashboard/analisi-puntate" pathname={pathname}>Analisi puntate</NavItem>
+        </>
+      )}
 
       {isSpeaker && (
         <>

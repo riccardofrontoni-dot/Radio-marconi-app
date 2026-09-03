@@ -23,6 +23,9 @@ export default async function AdminPage() {
       <h2 style={{ fontSize: 22, marginBottom: 20 }}>Amministrazione</h2>
 
       <div className="section-label" style={{ marginTop: 0 }}>Nuovi iscritti — da assegnare</div>
+      <p style={{ fontSize: 11.5, color: "var(--gray-text)", marginTop: -6, marginBottom: 14 }}>
+        Il reparto non serve per i Professori — lascialo su "—".
+      </p>
       {(pending ?? []).length === 0 && (
         <p className="placeholder-note" style={{ marginTop: 0 }}>Nessuno studente in attesa al momento.</p>
       )}
@@ -39,13 +42,14 @@ export default async function AdminPage() {
           }}
         >
           <span>{p.full_name || p.email}</span>
-          <select name="reparto" required style={selectStyle}>
-            <option value="">Reparto...</option>
+          <select name="reparto" style={selectStyle} defaultValue="">
+            <option value="">—</option>
             {REPARTI.map((r) => <option key={r} value={r}>{r}</option>)}
           </select>
           <select name="ruolo" style={selectStyle} defaultValue="membro">
             <option value="membro">Membro</option>
             <option value="capo">Capo reparto</option>
+            <option value="professore">Professore</option>
           </select>
           <button type="submit" style={{ padding: "7px 14px", borderRadius: 7, border: "none", background: "var(--blue)", color: "var(--white)", fontSize: 12.5, fontWeight: 600 }}>
             Assegna
@@ -57,7 +61,9 @@ export default async function AdminPage() {
       {(active ?? []).map((p) => (
         <div key={p.id} style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr auto", gap: 10, padding: "12px 14px", border: "1px solid var(--border)", borderRadius: 10, marginBottom: 8, fontSize: 13 }}>
           <span>{p.full_name || p.email}</span>
-          <span style={{ color: "#0f6e56", fontWeight: 600 }}>{p.reparto}{p.ruolo === "capo" ? " — capo" : ""}</span>
+          <span style={{ color: "#0f6e56", fontWeight: 600 }}>
+            {p.ruolo === "professore" ? "Professore" : `${p.reparto}${p.ruolo === "capo" ? " — capo" : ""}`}
+          </span>
           <span />
         </div>
       ))}

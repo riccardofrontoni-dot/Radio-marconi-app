@@ -168,7 +168,7 @@ export async function assignProfile(profileId: string, reparto: string, ruolo: s
   const supabase = createClient();
   await supabase
     .from("profiles")
-    .update({ reparto, ruolo, status: "attivo" })
+    .update({ reparto: reparto || null, ruolo, status: "attivo" })
     .eq("id", profileId);
   revalidatePath("/dashboard/admin");
 }
@@ -466,4 +466,17 @@ export async function assegnaTaskRad(formData: FormData) {
 
   revalidatePath("/dashboard/task");
   revalidatePath("/dashboard");
+}
+
+export async function impostaPresenza(eventoId: string, membroId: string, presente: boolean) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  await supabase.from("presenze_riunioni").upsert(
+    { evento_id: eventoId, membro_id: membroId, presente, registrato_da: user?.id, aggiornato_il: new Date().toISOString() },
+    { onConflict: "evento_id,membro_id" }
+  );
+
+  revalidatePath("/dashboard/presenze");
+  revalidatePath("/dashboard/analisi");
 }
