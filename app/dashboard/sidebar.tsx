@@ -130,6 +130,7 @@ export default function Sidebar({
           <div className="nav-divider" style={{ height: 1, background: "var(--border)", margin: "14px 8px" }} />
           <NavLabel>Social</NavLabel>
           <NavItem href="/dashboard/social-script" pathname={pathname}>I miei script social</NavItem>
+          <NavItem href="/dashboard/analisi-social" pathname={pathname}>Analisi social</NavItem>
         </>
       )}
 
@@ -151,6 +152,7 @@ export default function Sidebar({
           <NavItem href="/dashboard/membri" pathname={pathname}>Membri</NavItem>
           <NavItem href="/dashboard/script-archivio" pathname={pathname}>Script puntate</NavItem>
           <NavItem href="/dashboard/social" pathname={pathname}>Social</NavItem>
+          <NavItem href="/dashboard/analisi-social" pathname={pathname}>Analisi social</NavItem>
 
           <div className="nav-divider" style={{ height: 1, background: "var(--border)", margin: "14px 8px" }} />
           <NavLabel>Analisi</NavLabel>

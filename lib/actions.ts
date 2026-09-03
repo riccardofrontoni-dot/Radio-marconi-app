@@ -480,3 +480,27 @@ export async function impostaPresenza(eventoId: string, membroId: string, presen
   revalidatePath("/dashboard/presenze");
   revalidatePath("/dashboard/analisi");
 }
+
+export async function creaContenutoSocial(formData: FormData) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  await supabase.from("contenuti_social").insert({
+    nome: formData.get("nome") as string,
+    tipologia: (formData.get("tipologia") as string) || "format",
+    data_pubblicazione: (formData.get("data_pubblicazione") as string) || null,
+    visualizzazioni: Number(formData.get("visualizzazioni")) || 0,
+    engagement: Number(formData.get("engagement")) || 0,
+    retention_rate: Number(formData.get("retention_rate")) || 0,
+    follower_acquisiti: Number(formData.get("follower_acquisiti")) || 0,
+    creato_da: user?.id,
+  });
+
+  revalidatePath("/dashboard/analisi-social");
+}
+
+export async function eliminaContenutoSocial(id: string) {
+  const supabase = createClient();
+  await supabase.from("contenuti_social").delete().eq("id", id);
+  revalidatePath("/dashboard/analisi-social");
+}
