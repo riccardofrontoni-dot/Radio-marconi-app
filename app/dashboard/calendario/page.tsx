@@ -10,7 +10,7 @@ export default async function CalendarioPage({
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   const profile = await getEffectiveProfile(supabase, user!.id);
-  const puoCreare = profile.ruolo === "capo" || profile.ruolo === "rad";
+  const puoCreare = profile.ruolo === "capo" || profile.ruolo === "rad" || profile.ruolo === "professore";
 
   const today = new Date();
   const [annoParam, meseParam] = (searchParams.mese ?? "").split("-").map(Number);

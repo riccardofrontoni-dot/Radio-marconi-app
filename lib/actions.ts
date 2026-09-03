@@ -504,3 +504,102 @@ export async function eliminaContenutoSocial(id: string) {
   await supabase.from("contenuti_social").delete().eq("id", id);
   revalidatePath("/dashboard/analisi-social");
 }
+
+export async function caricaMateriale(formData: FormData) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  const file = formData.get("file") as File;
+  const nome = (formData.get("nome") as string) || file?.name || "Senza nome";
+  const descrizione = formData.get("descrizione") as string;
+
+  if (!file || file.size === 0) return;
+
+  const estensione = file.name.split(".").pop() || "";
+  const percorso = `${user?.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}${estensione ? "." + estensione : ""}`;
+
+  const { error } = await supabase.storage.from("materiali").upload(percorso, file);
+  if (error) return;
+
+  await supabase.from("materiali").insert({
+    nome,
+    descrizione: descrizione || null,
+    storage_path: percorso,
+    tipo: file.type || estensione,
+    dimensione: file.size,
+    caricato_da: user?.id,
+  });
+
+  revalidatePath("/dashboard/materiali");
+}
+
+export async function eliminaMateriale(id: string, storagePath: string) {
+  const supabase = createClient();
+  await supabase.storage.from("materiali").remove([storagePath]);
+  await supabase.from("materiali").delete().eq("id", id);
+  revalidatePath("/dashboard/materiali");
+}
+
+export async function creaProgetto(formData: FormData) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  const nome = formData.get("nome") as string;
+  const descrizione = formData.get("descrizione") as string;
+  const dataInizio = formData.get("data_inizio") as string;
+  const dataScadenza = formData.get("data_scadenza") as string;
+  const repartiCoinvolti = formData.getAll("reparti_coinvolti") as string[];
+  const personeCoinvolte = formData.getAll("persone_coinvolte") as string[];
+  const assegnatoDa = formData.get("assegnato_da") as string;
+  const file = formData.get("bando") as File | null;
+
+  // Evento sul calendario, così il progetto si vede anche lì.
+  let eventoId: string | null = null;
+  if (dataInizio) {
+    const { data: evento } = await supabase
+      .from("events")
+      .insert({
+        titolo: `Progetto: ${nome}`,
+        quando: new Date(`${dataInizio}T09:00:00`).toISOString(),
+        fine: dataScadenza ? new Date(`${dataScadenza}T18:00:00`).toISOString() : null,
+        tipo: "progetto",
+        membri: personeCoinvolte,
+      })
+      .select("id")
+      .single();
+    eventoId = evento?.id ?? null;
+  }
+
+  // PDF del bando, se caricato.
+  let bandoPath: string | null = null;
+  if (file && file.size > 0) {
+    const percorso = `${user?.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.pdf`;
+    const { error } = await supabase.storage.from("progetti-bandi").upload(percorso, file);
+    if (!error) bandoPath = percorso;
+  }
+
+  await supabase.from("progetti_professori").insert({
+    nome,
+    descrizione: descrizione || null,
+    data_inizio: dataInizio || null,
+    data_scadenza: dataScadenza || null,
+    reparti_coinvolti: repartiCoinvolti,
+    persone_coinvolte: personeCoinvolte,
+    assegnato_da: assegnatoDa || null,
+    bando_path: bandoPath,
+    evento_id: eventoId,
+    creato_da: user?.id,
+  });
+
+  revalidatePath("/dashboard/progetti");
+  revalidatePath("/dashboard/calendario");
+}
+
+export async function eliminaProgetto(id: string, bandoPath: string | null, eventoId: string | null) {
+  const supabase = createClient();
+  if (bandoPath) await supabase.storage.from("progetti-bandi").remove([bandoPath]);
+  if (eventoId) await supabase.from("events").delete().eq("id", eventoId);
+  await supabase.from("progetti_professori").delete().eq("id", id);
+  revalidatePath("/dashboard/progetti");
+  revalidatePath("/dashboard/calendario");
+}

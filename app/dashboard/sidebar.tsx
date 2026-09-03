@@ -103,20 +103,21 @@ export default function Sidebar({
       {!isProfessore && <NavItem href="/dashboard/task" pathname={pathname}>Task reparto</NavItem>}
       {isCapo && <NavItem href="/dashboard/membri-reparto" pathname={pathname}>Membri del reparto</NavItem>}
       <NavItem href="/dashboard/calendario" pathname={pathname}>Calendario</NavItem>
-      {!isProfessore && <NavItem href="/dashboard/materiali" pathname={pathname}>Materiali</NavItem>}
+      <NavItem href="/dashboard/materiali" pathname={pathname}>Materiali</NavItem>
       <NavItem href="/dashboard/obiettivi" pathname={pathname}>Obiettivi annui</NavItem>
 
       {isProfessore && (
         <>
           <div className="nav-divider" style={{ height: 1, background: "var(--border)", margin: "14px 8px" }} />
           <NavLabel>Professori</NavLabel>
+          <NavItem href="/dashboard/progetti" pathname={pathname}>Progetti</NavItem>
           <NavItem href="/dashboard/presenze" pathname={pathname}>Presenze</NavItem>
           <NavItem href="/dashboard/analisi" pathname={pathname}>Analisi</NavItem>
           <NavItem href="/dashboard/analisi-puntate" pathname={pathname}>Analisi puntate</NavItem>
         </>
       )}
 
-      {isSpeaker && (
+      {isSpeaker && !isRad && (
         <>
           <div className="nav-divider" style={{ height: 1, background: "var(--border)", margin: "14px 8px" }} />
           <NavLabel>Speaker</NavLabel>
@@ -125,7 +126,7 @@ export default function Sidebar({
         </>
       )}
 
-      {isSocial && (
+      {isSocial && !isRad && (
         <>
           <div className="nav-divider" style={{ height: 1, background: "var(--border)", margin: "14px 8px" }} />
           <NavLabel>Social</NavLabel>
@@ -134,7 +135,7 @@ export default function Sidebar({
         </>
       )}
 
-      {isQualita && (
+      {isQualita && !isRad && (
         <>
           <div className="nav-divider" style={{ height: 1, background: "var(--border)", margin: "14px 8px" }} />
           <NavLabel>Qualità</NavLabel>
@@ -147,9 +148,12 @@ export default function Sidebar({
       {isRad && (
         <>
           <div className="nav-divider" style={{ height: 1, background: "var(--border)", margin: "14px 8px" }} />
-          <NavLabel>RAD</NavLabel>
-          <NavItem href="/dashboard/admin" pathname={pathname}>Amministrazione</NavItem>
+          <NavLabel>Amministrazione</NavLabel>
+          <NavItem href="/dashboard/admin" pathname={pathname}>Nuovi iscritti</NavItem>
           <NavItem href="/dashboard/membri" pathname={pathname}>Membri</NavItem>
+
+          <div className="nav-divider" style={{ height: 1, background: "var(--border)", margin: "14px 8px" }} />
+          <NavLabel>Contenuti</NavLabel>
           <NavItem href="/dashboard/script-archivio" pathname={pathname}>Script puntate</NavItem>
           <NavItem href="/dashboard/social" pathname={pathname}>Social</NavItem>
           <NavItem href="/dashboard/analisi-social" pathname={pathname}>Analisi social</NavItem>

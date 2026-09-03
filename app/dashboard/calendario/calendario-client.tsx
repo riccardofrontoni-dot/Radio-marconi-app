@@ -10,8 +10,8 @@ const MESI = [
   "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre",
 ];
 const GIORNI_SETTIMANA = ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"];
-const TIPO_LABEL: Record<string, string> = { diretta: "Diretta", riunione: "Riunione", registrazione: "Registrazione", altro: "Altro" };
-const TIPO_COLORE: Record<string, string> = { diretta: "#2C7A45", riunione: "#8A6D3B", registrazione: "#6B4FA0", altro: "#6E6E73" };
+const TIPO_LABEL: Record<string, string> = { diretta: "Diretta", riunione: "Riunione", registrazione: "Registrazione", altro: "Altro", progetto: "Progetto" };
+const TIPO_COLORE: Record<string, string> = { diretta: "#2C7A45", riunione: "#8A6D3B", registrazione: "#6B4FA0", altro: "#6E6E73", progetto: "#B45309" };
 
 type Evento = {
   id: string;
