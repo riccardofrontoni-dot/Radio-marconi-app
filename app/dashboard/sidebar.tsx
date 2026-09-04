@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -61,6 +61,8 @@ export default function Sidebar({
   const pathname = usePathname();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [menuAperto, setMenuAperto] = useState(false);
+  useEffect(() => { setMenuAperto(false); }, [pathname]);
   const displayName = fullName || email;
   const initials = displayName
     .split(" ")
@@ -80,17 +82,30 @@ export default function Sidebar({
   }
 
   return (
-    <div
-      className="dashboard-sidebar"
-      style={{
-        width: "var(--sidebar-w)",
-        flexShrink: 0,
-        background: "var(--light-bg)",
-        padding: "22px 16px",
-        display: "flex",
-        flexDirection: "column",
-      }}
-    >
+    <div className="sidebar-root">
+      <div className="mobile-topbar">
+        <button className="mobile-menu-btn" onClick={() => setMenuAperto(true)} aria-label="Apri il menu">
+          <span />
+          <span />
+          <span />
+        </button>
+        <Image src="/logo.png" alt="Radio Marconi" width={26} height={26} style={{ objectFit: "contain" }} />
+        <span style={{ fontFamily: "Georgia, serif", fontWeight: 700, fontSize: 14.5 }}>Radio Marconi</span>
+      </div>
+
+      {menuAperto && <div className="mobile-overlay" onClick={() => setMenuAperto(false)} />}
+
+      <div
+        className={`dashboard-sidebar${menuAperto ? " mobile-open" : ""}`}
+        style={{
+          width: "var(--sidebar-w)",
+          flexShrink: 0,
+          background: "var(--light-bg)",
+          padding: "22px 16px",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
       <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 6px", marginBottom: 30 }}>
         <Image src="/logo.png" alt="Radio Marconi" width={38} height={38} style={{ objectFit: "contain" }} />
         <span className="sidebar-brand-text" style={{ fontFamily: "Georgia, serif", fontWeight: 700, fontSize: 16 }}>
@@ -215,6 +230,7 @@ export default function Sidebar({
           </div>
         </div>
         <LogoutButton />
+      </div>
       </div>
     </div>
   );

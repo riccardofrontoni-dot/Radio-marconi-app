@@ -173,7 +173,7 @@ export default function ValutazioniClient({
                         <span style={{ fontSize: 13.5, fontWeight: 600 }}>{p.full_name || p.email}</span>
                         <span style={{ fontSize: 11, color: "var(--gray-text)" }}>{repartoLabel(p.reparto)}</span>
                       </div>
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+                      <div className="grid-stack-mobile" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
                         {PARAMETRI.map((param) => (
                           <div key={param.key}>
                             <label style={{ fontSize: 10.5, fontWeight: 600, display: "block", marginBottom: 3 }}>{param.label}</label>

@@ -45,7 +45,7 @@ export default async function HomePage() {
       <AvvisiBanner destinatarioId={profile.id} />
       {profile.ruolo === "rad" && <ResocontiInAttesaBanner />}
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12, marginBottom: 28 }}>
+      <div className="grid-stack-mobile" style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12, marginBottom: 28 }}>
         <div className="card">
           <div style={{ fontSize: 12.5, color: "var(--gray-text)", marginBottom: 6 }}>Task da completare</div>
           <div style={{ fontSize: 24, fontWeight: 600, fontFamily: "Georgia, serif" }}>{daCompletare}</div>
@@ -520,7 +520,7 @@ async function AndamentoProgetto({ supabase, nomeUtente }: { supabase: ReturnTyp
       </div>
 
       <div className="section-label" style={{ marginTop: 0 }}>Miglior diretta</div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 28 }}>
+      <div className="grid-stack-mobile" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 28 }}>
         <div className="card" style={{ padding: 16 }}>
           <div style={{ fontSize: 10.5, fontWeight: 700, color: "var(--gray-text)", textTransform: "uppercase", marginBottom: 6 }}>Della settimana</div>
           {miglioreSettimana ? (

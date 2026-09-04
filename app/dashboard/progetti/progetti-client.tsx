@@ -88,7 +88,7 @@ export default function ProgettiClient({
             <label style={labelStyle}>Nome evento</label>
             <input name="nome" type="text" required placeholder="Es. Podcast per la Giornata della Memoria" style={inputStyle} />
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div className="grid-stack-mobile" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <div>
               <label style={labelStyle}>Partenza</label>
               <input name="data_inizio" type="date" style={inputStyle} />

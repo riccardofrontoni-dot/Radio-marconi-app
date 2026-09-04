@@ -65,7 +65,7 @@ export default function AnalisiSocialClient({ contenuti }: { contenuti: Contenut
             <label style={labelStyle}>Nome contenuto</label>
             <input name="nome" type="text" required placeholder="Es. Reel Charleston — Roma vuota" style={inputStyle} />
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div className="grid-stack-mobile" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <div>
               <label style={labelStyle}>Tipologia</label>
               <select name="tipologia" defaultValue="format" style={inputStyle}>
@@ -80,7 +80,7 @@ export default function AnalisiSocialClient({ contenuti }: { contenuti: Contenut
               <input name="data_pubblicazione" type="date" style={inputStyle} />
             </div>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div className="grid-stack-mobile" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <div>
               <label style={labelStyle}>Visualizzazioni</label>
               <input name="visualizzazioni" type="number" min="0" placeholder="0" style={inputStyle} />
@@ -90,7 +90,7 @@ export default function AnalisiSocialClient({ contenuti }: { contenuti: Contenut
               <input name="engagement" type="number" min="0" max="100" step="0.1" placeholder="0" style={inputStyle} />
             </div>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div className="grid-stack-mobile" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <div>
               <label style={labelStyle}>Retention rate (%)</label>
               <input name="retention_rate" type="number" min="0" max="100" step="0.1" placeholder="0" style={inputStyle} />
@@ -133,7 +133,7 @@ export default function AnalisiSocialClient({ contenuti }: { contenuti: Contenut
               </div>
             )}
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+            <div className="grid-stack-mobile" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
               <Stat label="Visualizzazioni" value={c.visualizzazioni.toLocaleString("it-IT")} />
               <Stat label="Engagement" value={`${c.engagement}%`} />
               <Stat label="Follower acquisiti" value={`+${c.follower_acquisiti}`} />

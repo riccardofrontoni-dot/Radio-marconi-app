@@ -117,6 +117,7 @@ export default function CalendarioClient({
     <div>
       {/* --- header verde "da radio" --- */}
       <div
+        className="calendar-header-band"
         style={{
           position: "relative", overflow: "hidden", borderRadius: 22,
           padding: "34px 32px 30px", marginBottom: 28,
@@ -150,13 +151,13 @@ export default function CalendarioClient({
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 8, marginBottom: 8 }}>
         {GIORNI_SETTIMANA.map((g) => (
-          <div key={g} style={{ fontSize: 12, fontWeight: 700, color: "var(--gray-text)", textAlign: "center", padding: "4px 0" }}>
+          <div key={g} className="dow-label" style={{ fontSize: 12, fontWeight: 700, color: "var(--gray-text)", textAlign: "center", padding: "4px 0" }}>
             {g}
           </div>
         ))}
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 8 }}>
+      <div className="calendar-grid" style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 8 }}>
         {giorni.map((giorno) => {
           const inMese = giorno.getMonth() === mese;
           const isOggi = giorno.toDateString() === today.toDateString();
@@ -167,6 +168,7 @@ export default function CalendarioClient({
             <button
               key={iso}
               onClick={() => apriGiorno(iso)}
+              className={`calendar-day${eventiGiorno.length ? " has-events" : ""}`}
               style={{
                 display: "block", textAlign: "left", minHeight: 108, borderRadius: 14, padding: 8,
                 background: inMese ? "var(--white)" : "transparent",
@@ -178,12 +180,13 @@ export default function CalendarioClient({
               onMouseEnter={(e) => { if (inMese) { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = "0 10px 24px -12px rgba(15,61,34,0.25)"; } }}
               onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}
             >
-              <div style={{ fontSize: 13, fontWeight: isOggi ? 700 : 500, color: isOggi ? "var(--blue)" : "var(--dark)", marginBottom: 5 }}>
+              <div className="day-num" style={{ fontSize: 13, fontWeight: isOggi ? 700 : 500, color: isOggi ? "var(--blue)" : "var(--dark)", marginBottom: 5 }}>
                 {giorno.getDate()}
               </div>
               {eventiGiorno.slice(0, 3).map((e) => (
                 <div
                   key={e.id}
+                  className="day-chip"
                   style={{
                     fontSize: 11, background: TIPO_COLORE[e.tipo] ?? "var(--blue)",
                     color: "#fff", borderRadius: 6, padding: "3px 6px", marginBottom: 3, overflow: "hidden",
@@ -410,7 +413,7 @@ function EventoForm({
         <label style={labelStyle}>Data</label>
         <input name="data" type="date" required defaultValue={giornoISOdefault} style={inputStyle} />
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+      <div className="grid-stack-mobile-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
         <div>
           <label style={labelStyle}>Inizio</label>
           <input name="ora" type="time" defaultValue={oraDefault} style={inputStyle} />

@@ -70,7 +70,7 @@ export default async function TaskPage({
     <div>
       <h2 style={{ fontSize: 22, marginBottom: 20 }}>Task reparto</h2>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 24 }}>
+      <div className="grid-stack-mobile" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 24 }}>
         <FiltroCard href="/dashboard/task" label="Tutte" valore={(tuttiTaskMiei ?? []).length} attivo={!filtroMio} colore="var(--dark)" />
         <FiltroCard href="/dashboard/task?filtro=ritardo" label="In ritardo" valore={conteggiMiei.ritardo} attivo={filtroMio === "ritardo"} colore="#DC2626" />
         <FiltroCard href="/dashboard/task?filtro=urgente" label="Urgente" valore={conteggiMiei.urgente} attivo={filtroMio === "urgente"} colore="#D97706" />
@@ -124,7 +124,7 @@ async function VistaCapo({ profile, filtro }: { profile: { id: string; reparto: 
         Assegna task ai membri del tuo reparto e tieni traccia dell'avanzamento.
       </p>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 28 }}>
+      <div className="grid-stack-mobile" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 28 }}>
         <FiltroCard href="/dashboard/task" label="Tutti" valore={(tuttiTask ?? []).length} attivo={!filtroAttivo} colore="var(--dark)" />
         <FiltroCard href="/dashboard/task?filtro=ritardo" label="In ritardo" valore={conteggi.ritardo} attivo={filtroAttivo === "ritardo"} colore="#DC2626" />
         <FiltroCard href="/dashboard/task?filtro=urgente" label="Urgente" valore={conteggi.urgente} attivo={filtroAttivo === "urgente"} colore="#D97706" />

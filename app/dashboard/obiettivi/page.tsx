@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getEffectiveProfile } from "@/lib/vista";
 import { createObiettivo, deleteObiettivo } from "@/lib/actions";
 import ProgressoManualeSlider from "./progresso-slider";
 
@@ -12,7 +13,7 @@ const TIPO_LABEL: Record<string, string> = {
 export default async function ObiettiviPage() {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  const { data: profile } = await supabase.from("profiles").select("*").eq("id", user!.id).single();
+  const profile = await getEffectiveProfile(supabase, user!.id);
   const isRad = profile.ruolo === "rad";
 
   const { data: obiettivi } = await supabase
@@ -123,7 +124,7 @@ export default async function ObiettiviPage() {
               <label style={labelStyle}>Descrizione (facoltativa)</label>
               <input name="descrizione" type="text" placeholder="Una riga di contesto" style={inputStyle} />
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <div className="grid-stack-mobile" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
               <div>
                 <label style={labelStyle}>Tipo di calcolo</label>
                 <select name="tipo" style={inputStyle} defaultValue="manuale">
@@ -138,7 +139,7 @@ export default async function ObiettiviPage() {
                 <input name="scadenza" type="date" defaultValue={`${new Date().getMonth() >= 6 ? new Date().getFullYear() + 1 : new Date().getFullYear()}-06-30`} style={inputStyle} />
               </div>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <div className="grid-stack-mobile" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
               <div>
                 <label style={labelStyle}>Piattaforma (solo se "follower social")</label>
                 <select name="piattaforma" style={inputStyle} defaultValue="">
