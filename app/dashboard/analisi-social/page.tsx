@@ -1,25 +1,33 @@
+// app/dashboard/analisi-social/page.tsx
+
+import SocialTabs from "@/components/SocialTabs";
+import { fetchInstagramData } from "@/lib/instagram";
 import { createClient } from "@/lib/supabase/server";
-import { getEffectiveProfile } from "@/lib/vista";
-import AnalisiSocialClient from "./analisi-social-client";
 
 export default async function AnalisiSocialPage() {
+  // 1. Chiama le API live di Instagram (recupera follower reali e media)
+  const instaLive = await fetchInstagramData();
+
+  // 2. Recupera lo storico dei follower dal database Supabase per il grafico
   const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  const profile = await getEffectiveProfile(supabase, user!.id);
-
-  if (profile.ruolo !== "rad" && profile.reparto !== "social") {
-    return (
-      <div>
-        <h2 style={{ fontSize: 22, marginBottom: 10 }}>Analisi social</h2>
-        <p style={{ color: "var(--gray-text)", fontSize: 14 }}>Questa sezione è per il RAD e il reparto Social.</p>
-      </div>
-    );
-  }
-
-  const { data: contenuti } = await supabase
-    .from("contenuti_social")
+  const { data: history } = await supabase
+    .from("instagram_daily_stats")
     .select("*")
-    .order("data_pubblicazione", { ascending: false, nullsFirst: false });
+    .order("rilevato_il", { ascending: true });
 
-  return <AnalisiSocialClient contenuti={contenuti ?? []} />;
+  return (
+    <div style={{ padding: "24px" }}>
+      <div style={{ marginBottom: 24 }}>
+        <h1 style={{ fontSize: 28, fontWeight: 800, color: "#111", letterSpacing: "-0.5px" }}>
+          Social Analytics
+        </h1>
+        <p style={{ fontSize: 14, color: "#666", marginTop: 4 }}>
+          Monitoraggio delle prestazioni su tutte le piattaforme
+        </p>
+      </div>
+
+      {/* Passa i dati reali a SocialTabs */}
+      <SocialTabs instaLive={instaLive} history={history || []} />
+    </div>
+  );
 }

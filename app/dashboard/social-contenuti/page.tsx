@@ -1,6 +1,6 @@
-// app/dashboard/social/page.tsx
+// app/dashboard/social-contenuti/page.tsx
 
-export default function SocialPage() {
+export default function SocialContenutiPage() {
   return (
     <div style={{ padding: "40px 20px", textAlign: "center" }}>
       <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8, color: "#111" }}>

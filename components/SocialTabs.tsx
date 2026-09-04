@@ -18,14 +18,14 @@ type MediaItem = {
 };
 
 type SocialProps = {
-  instaLive: {
-    follower: number;
-    username: string;
-    latestMedia: MediaItem | null;
-    bestMedia: MediaItem | null;
-    worstMedia: MediaItem | null;
+  instaLive?: {
+    follower?: number;
+    username?: string;
+    latestMedia?: MediaItem | null;
+    bestMedia?: MediaItem | null;
+    worstMedia?: MediaItem | null;
   };
-  history: any[];
+  history?: any[];
 };
 
 export default function SocialTabs({ instaLive, history }: SocialProps) {
@@ -86,7 +86,7 @@ export default function SocialTabs({ instaLive, history }: SocialProps) {
                 </span>
               </div>
               <div style={{ fontSize: 42, fontWeight: 800, color: "#15803d", letterSpacing: "-1px", fontFamily: "system-ui, -apple-system, sans-serif" }}>
-                {instaLive.follower.toLocaleString("it-IT")}
+                {(instaLive?.follower ?? 0).toLocaleString("it-IT")}
               </div>
             </div>
           </div>
@@ -94,7 +94,7 @@ export default function SocialTabs({ instaLive, history }: SocialProps) {
           {/* 2. I 3 BOX REEL */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16, marginBottom: 24 }}>
             {/* ULTIMO CONTENUTO */}
-            {instaLive.latestMedia && (
+            {instaLive?.latestMedia && (
               <div
                 className="card"
                 onClick={() => setSelectedMedia({ item: instaLive.latestMedia!, label: "ULTIMO CONTENUTO" })}
@@ -126,7 +126,7 @@ export default function SocialTabs({ instaLive, history }: SocialProps) {
             )}
 
             {/* REEL PIÙ VISTO */}
-            {instaLive.bestMedia && (
+            {instaLive?.bestMedia && (
               <div
                 className="card"
                 onClick={() => setSelectedMedia({ item: instaLive.bestMedia!, label: "REEL PIÙ VISTO 🔥" })}
@@ -158,7 +158,7 @@ export default function SocialTabs({ instaLive, history }: SocialProps) {
             )}
 
             {/* REEL MENO VISTO */}
-            {instaLive.worstMedia && (
+            {instaLive?.worstMedia && (
               <div
                 className="card"
                 onClick={() => setSelectedMedia({ item: instaLive.worstMedia!, label: "REEL MENO VISTO 📉" })}
@@ -225,7 +225,7 @@ export default function SocialTabs({ instaLive, history }: SocialProps) {
             backdropFilter: "blur(4px)",
             display: "flex",
             alignItems: "center",
-            justifyContent: "center",
+            justify: "center",
             zIndex: 999,
           }}
           onClick={() => setSelectedMedia(null)}
@@ -269,27 +269,27 @@ export default function SocialTabs({ instaLive, history }: SocialProps) {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, background: "#f8f9fa", padding: 14, borderRadius: 14, marginBottom: 16 }}>
               <div>
                 <div style={{ fontSize: 11, color: "var(--gray-text)" }}>👁️ Visualizzazioni</div>
-                <div style={{ fontSize: 16, fontWeight: 700 }}>{selectedMedia.item.views.toLocaleString("it-IT")}</div>
+                <div style={{ fontSize: 16, fontWeight: 700 }}>{(selectedMedia.item.views ?? 0).toLocaleString("it-IT")}</div>
               </div>
 
               <div>
                 <div style={{ fontSize: 11, color: "var(--gray-text)" }}>❤️ Mi Piace</div>
-                <div style={{ fontSize: 16, fontWeight: 700 }}>{selectedMedia.item.likes.toLocaleString("it-IT")}</div>
+                <div style={{ fontSize: 16, fontWeight: 700 }}>{(selectedMedia.item.likes ?? 0).toLocaleString("it-IT")}</div>
               </div>
 
               <div>
                 <div style={{ fontSize: 11, color: "var(--gray-text)" }}>💬 Commenti</div>
-                <div style={{ fontSize: 16, fontWeight: 700 }}>{selectedMedia.item.comments.toLocaleString("it-IT")}</div>
+                <div style={{ fontSize: 16, fontWeight: 700 }}>{(selectedMedia.item.comments ?? 0).toLocaleString("it-IT")}</div>
               </div>
 
               <div>
                 <div style={{ fontSize: 11, color: "var(--gray-text)" }}>👤 Visite al Profilo</div>
-                <div style={{ fontSize: 16, fontWeight: 700 }}>+{selectedMedia.item.profileVisits}</div>
+                <div style={{ fontSize: 16, fontWeight: 700 }}>+{selectedMedia.item.profileVisits ?? 0}</div>
               </div>
 
               <div style={{ gridColumn: "span 2", borderTop: "1px solid #e5e7eb", paddingTop: 8, marginTop: 4 }}>
                 <div style={{ fontSize: 11, color: "#16a34a", fontWeight: 600 }}>➕ Follower Portati dal Video</div>
-                <div style={{ fontSize: 17, fontWeight: 800, color: "#15803d" }}>+{selectedMedia.item.followersGained} follower</div>
+                <div style={{ fontSize: 17, fontWeight: 800, color: "#15803d" }}>+{selectedMedia.item.followersGained ?? 0} follower</div>
               </div>
             </div>
 

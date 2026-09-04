@@ -156,10 +156,10 @@ export default function Sidebar({
           <NavLabel>Contenuti</NavLabel>
           <NavItem href="/dashboard/script-archivio" pathname={pathname}>Script puntate</NavItem>
           <NavItem href="/dashboard/social" pathname={pathname}>Social</NavItem>
-          <NavItem href="/dashboard/analisi-social" pathname={pathname}>Analisi social</NavItem>
 
           <div className="nav-divider" style={{ height: 1, background: "var(--border)", margin: "14px 8px" }} />
           <NavLabel>Analisi</NavLabel>
+          <NavItem href="/dashboard/analisi-social" pathname={pathname}>Analisi social</NavItem>
           <NavItem href="/dashboard/analisi" pathname={pathname}>Analisi</NavItem>
           <NavItem href="/dashboard/analisi-puntate" pathname={pathname}>Analisi puntate</NavItem>
           <NavItem href="/dashboard/resoconti" pathname={pathname}>
@@ -228,6 +228,7 @@ function NavItem({ href, pathname, children }: { href: string; pathname: string;
     </Link>
   );
 }
+
 function NavLabel({ children }: { children: React.ReactNode }) {
   return (
     <div className="nav-label" style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.04em", color: "#a1a1a6", padding: "0 12px", marginBottom: 6, marginTop: 4 }}>
