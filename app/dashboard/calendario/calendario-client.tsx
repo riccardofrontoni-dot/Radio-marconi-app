@@ -3,15 +3,15 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { createEvent, updateEvent, deleteEvent } from "@/lib/actions";
-import { REPARTI, repartoColor } from "@/lib/reparti";
+import { REPARTI, repartoColor, repartoLabel } from "@/lib/reparti";
 
 const MESI = [
   "Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno",
   "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre",
 ];
 const GIORNI_SETTIMANA = ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"];
-const TIPO_LABEL: Record<string, string> = { diretta: "Diretta", riunione: "Riunione", registrazione: "Registrazione", altro: "Altro", progetto: "Progetto" };
-const TIPO_COLORE: Record<string, string> = { diretta: "#2C7A45", riunione: "#8A6D3B", registrazione: "#6B4FA0", altro: "#6E6E73", progetto: "#B45309" };
+const TIPO_LABEL: Record<string, string> = { diretta: "Diretta", riunione: "Riunione", registrazione: "Registrazione", altro: "Altro", progetto: "Progetto", formazione: "Formazione" };
+const TIPO_COLORE: Record<string, string> = { diretta: "#2C7A45", riunione: "#8A6D3B", registrazione: "#6B4FA0", altro: "#6E6E73", progetto: "#B45309", formazione: "#0369A1" };
 
 type Evento = {
   id: string;
@@ -20,7 +20,14 @@ type Evento = {
   fine: string | null;
   tipo: string;
   membri: string[] | null;
+  reparti_coinvolti: string[] | null;
   descrizione: string | null;
+};
+type FormatDiretta = {
+  id: string;
+  reparto: string;
+  nome: string;
+  membri: string[];
 };
 type Membro = {
   id: string;
@@ -36,6 +43,8 @@ export default function CalendarioClient({
   fineGriglia,
   events,
   membri,
+  formats,
+  materialePerEvento,
   puoCreare,
   eventiConScript,
   eventiConScriptSocial,
@@ -50,6 +59,8 @@ export default function CalendarioClient({
   fineGriglia: string;
   events: Evento[];
   membri: Membro[];
+  formats: FormatDiretta[];
+  materialePerEvento: Record<string, { url: string | null; nome: string }>;
   puoCreare: boolean;
   eventiConScript: string[];
   eventiConScriptSocial: string[];
@@ -114,252 +125,252 @@ export default function CalendarioClient({
   const eventiGiornoAperto = giornoAperto ? eventsPerGiorno[giornoAperto] ?? [] : [];
 
   return (
-    <div>
-      {/* --- header verde "da radio" --- */}
-      <div
-        className="calendar-header-band"
-        style={{
-          position: "relative", overflow: "hidden", borderRadius: 22,
-          padding: "34px 32px 30px", marginBottom: 28,
-          background: "radial-gradient(120% 140% at 12% 10%, #4CAF6D 0%, #0F3D22 52%, #06140C 100%)",
-        }}
-      >
-        <svg
-          width="420" height="420" viewBox="0 0 420 420"
-          style={{ position: "absolute", right: -80, top: -110, opacity: 0.2, pointerEvents: "none" }}
-        >
-          {[70, 118, 166, 214].map((r) => (
-            <circle key={r} cx="210" cy="210" r={r} fill="none" stroke="#A9E0BB" strokeWidth="1.5" />
-          ))}
-        </svg>
-
-        <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 14 }}>
-          <div>
-            <div style={{ fontSize: 11.5, letterSpacing: "0.08em", textTransform: "uppercase", color: "#A9E0BB", marginBottom: 8, fontWeight: 600 }}>
-              Calendario condiviso
-            </div>
-            <h2 style={{ fontFamily: "Georgia, serif", fontSize: 36, fontWeight: 700, color: "#fff" }}>
+    <div className="calendario-layout" style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
+      <div style={{ flex: "1 1 760px", minWidth: 0 }}>
+        <div style={{ border: "1px solid var(--border)", borderRadius: 18, overflow: "hidden", background: "var(--white)" }}>
+          {/* --- striscia verde slim --- */}
+          <div
+            className="calendar-header-band"
+            style={{ background: "var(--blue)", padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}
+          >
+            <h2 style={{ color: "#fff", fontFamily: "Georgia, serif", fontSize: 19, fontWeight: 700, textTransform: "capitalize" }}>
               {MESI[mese]} {anno}
             </h2>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <Link href={`/dashboard/calendario?mese=${mesePrec}`} style={navBtnStyle}>‹</Link>
+              <Link href={`/dashboard/calendario?mese=${meseSucc}`} style={navBtnStyle}>›</Link>
+            </div>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <Link href={`/dashboard/calendario?mese=${mesePrec}`} style={navBtnStyle}>‹</Link>
-            <Link href={`/dashboard/calendario?mese=${meseSucc}`} style={navBtnStyle}>›</Link>
+
+          <div style={{ padding: 16 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 8, marginBottom: 8 }}>
+              {GIORNI_SETTIMANA.map((g) => (
+                <div key={g} className="dow-label" style={{ fontSize: 12, fontWeight: 700, color: "var(--gray-text)", textAlign: "center", padding: "4px 0" }}>
+                  {g}
+                </div>
+              ))}
+            </div>
+
+            <div className="calendar-grid" style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 8 }}>
+              {giorni.map((giorno) => {
+                const inMese = giorno.getMonth() === mese;
+                const isOggi = giorno.toDateString() === today.toDateString();
+                const iso = giornoISO(giorno);
+                const eventiGiorno = eventsPerGiorno[iso] ?? [];
+                const isSelezionato = giornoAperto === iso;
+
+                return (
+                  <button
+                    key={iso}
+                    onClick={() => apriGiorno(iso)}
+                    className={`calendar-day${eventiGiorno.length ? " has-events" : ""}`}
+                    style={{
+                      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-start",
+                      textAlign: "center", minHeight: 96, borderRadius: 14, padding: "12px 6px",
+                      background: isSelezionato ? "var(--light-bg)" : inMese ? "var(--white)" : "transparent",
+                      border: isOggi ? "1.5px solid var(--blue)" : isSelezionato ? "1px solid var(--blue)" : "1px solid var(--border)",
+                      opacity: inMese ? 1 : 0.35, cursor: "pointer", fontFamily: "inherit",
+                      transition: "transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease",
+                    }}
+                    onMouseEnter={(e) => { if (inMese) { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = "0 10px 24px -12px rgba(15,61,34,0.25)"; } }}
+                    onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}
+                  >
+                    <div className="day-num" style={{ fontSize: 17, fontWeight: isOggi ? 700 : 500, color: isOggi ? "var(--blue)" : "var(--dark)" }}>
+                      {giorno.getDate()}
+                    </div>
+                    {eventiGiorno.length > 0 && (
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 4, justifyContent: "center", marginTop: 8, maxWidth: 56 }}>
+                        {eventiGiorno.slice(0, 6).map((e) => (
+                          <span key={e.id} style={{ width: 7, height: 7, borderRadius: "50%", background: TIPO_COLORE[e.tipo] ?? "var(--blue)", flexShrink: 0 }} />
+                        ))}
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 8, marginBottom: 8 }}>
-        {GIORNI_SETTIMANA.map((g) => (
-          <div key={g} className="dow-label" style={{ fontSize: 12, fontWeight: 700, color: "var(--gray-text)", textAlign: "center", padding: "4px 0" }}>
-            {g}
-          </div>
-        ))}
-      </div>
-
-      <div className="calendar-grid" style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 8 }}>
-        {giorni.map((giorno) => {
-          const inMese = giorno.getMonth() === mese;
-          const isOggi = giorno.toDateString() === today.toDateString();
-          const iso = giornoISO(giorno);
-          const eventiGiorno = eventsPerGiorno[iso] ?? [];
-
-          return (
-            <button
-              key={iso}
-              onClick={() => apriGiorno(iso)}
-              className={`calendar-day${eventiGiorno.length ? " has-events" : ""}`}
-              style={{
-                display: "block", textAlign: "left", minHeight: 108, borderRadius: 14, padding: 8,
-                background: inMese ? "var(--white)" : "transparent",
-                border: isOggi ? "1.5px solid var(--blue)" : "1px solid var(--border)",
-                boxShadow: isOggi ? "none" : undefined,
-                opacity: inMese ? 1 : 0.35, cursor: "pointer", fontFamily: "inherit",
-                transition: "transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease",
-              }}
-              onMouseEnter={(e) => { if (inMese) { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = "0 10px 24px -12px rgba(15,61,34,0.25)"; } }}
-              onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}
-            >
-              <div className="day-num" style={{ fontSize: 13, fontWeight: isOggi ? 700 : 500, color: isOggi ? "var(--blue)" : "var(--dark)", marginBottom: 5 }}>
-                {giorno.getDate()}
+      {/* --- pannello fisso a destra: legenda, o dettaglio del giorno --- */}
+      <div className="calendario-panel" style={{ flex: "0 0 400px", width: 400 }}>
+        <div className="card" style={{ padding: 26, position: "sticky", top: 20, maxHeight: "calc(100vh - 40px)", overflowY: "auto" }}>
+          {!giornoAperto ? (
+            <>
+              <div className="section-label" style={{ marginTop: 0 }}>Legenda</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 11, marginBottom: 18 }}>
+                {Object.entries(TIPO_LABEL).map(([key, label]) => (
+                  <div key={key} style={{ display: "flex", alignItems: "center", gap: 9 }}>
+                    <span style={{ width: 11, height: 11, borderRadius: "50%", background: TIPO_COLORE[key], flexShrink: 0 }} />
+                    <span style={{ fontSize: 13 }}>{label}</span>
+                  </div>
+                ))}
               </div>
-              {eventiGiorno.slice(0, 3).map((e) => (
-                <div
-                  key={e.id}
-                  className="day-chip"
-                  style={{
-                    fontSize: 11, background: TIPO_COLORE[e.tipo] ?? "var(--blue)",
-                    color: "#fff", borderRadius: 6, padding: "3px 6px", marginBottom: 3, overflow: "hidden",
-                    whiteSpace: "nowrap", textOverflow: "ellipsis", fontWeight: 500,
-                  }}
-                >
-                  {e.titolo}
-                </div>
-              ))}
-              {eventiGiorno.length > 3 && (
-                <div style={{ fontSize: 10.5, color: "var(--gray-text)" }}>+{eventiGiorno.length - 3} altri</div>
+              <p style={{ fontSize: 12, color: "var(--gray-text)", margin: 0, fontStyle: "italic" }}>
+                Clicca un giorno per vedere gli eventi.
+              </p>
+            </>
+          ) : (
+            <>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
+                <h3 style={{ fontSize: 17, fontFamily: "Georgia, serif", textTransform: "capitalize" }}>
+                  {new Date(giornoAperto).toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" })}
+                </h3>
+                <button onClick={chiudi} style={{ border: "none", background: "var(--light-bg)", width: 28, height: 28, borderRadius: "50%", fontSize: 14, color: "var(--gray-text)", cursor: "pointer", flexShrink: 0 }}>✕</button>
+              </div>
+
+              {eventiGiornoAperto.length === 0 && !mostraForm && (
+                <p className="placeholder-note" style={{ marginTop: 0 }}>Nessun evento in questo giorno.</p>
               )}
-            </button>
-          );
-        })}
-      </div>
 
-      {/* --- overlay + pannello scorrevole del giorno --- */}
-      <div
-        onClick={chiudi}
-        style={{
-          position: "fixed", inset: 0, background: "rgba(20,24,40,0.32)",
-          opacity: giornoAperto ? 1 : 0, pointerEvents: giornoAperto ? "auto" : "none",
-          transition: "opacity 0.22s ease", zIndex: 50,
-        }}
-      />
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          position: "fixed", top: 0, right: 0, height: "100%", width: 440, maxWidth: "92vw",
-          background: "var(--white)", boxShadow: "-18px 0 40px rgba(20,24,40,0.16)",
-          transform: giornoAperto ? "translateX(0)" : "translateX(100%)",
-          transition: "transform 0.28s cubic-bezier(.22,.9,.32,1)", zIndex: 51,
-          padding: "26px 26px 24px", display: "flex", flexDirection: "column", overflowY: "auto",
-        }}
-      >
-        {giornoAperto && (
-          <>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
-              <h3 style={{ fontSize: 18, fontFamily: "Georgia, serif", textTransform: "capitalize" }}>
-                {new Date(giornoAperto).toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" })}
-              </h3>
-              <button onClick={chiudi} style={{ border: "none", background: "var(--light-bg)", width: 30, height: 30, borderRadius: "50%", fontSize: 15, color: "var(--gray-text)", cursor: "pointer" }}>✕</button>
-            </div>
+              {eventiGiornoAperto.map((e) =>
+                modificaId === e.id ? (
+                  <EventoForm
+                    key={e.id}
+                    giornoISOdefault={giornoAperto}
+                    evento={e}
+                    membri={membri}
+                    formats={formats}
+                    onSalva={(formData) => {
+                      startTransition(async () => {
+                        await updateEvent(e.id, formData);
+                        setModificaId(null);
+                        mostraToast("Evento aggiornato");
+                      });
+                    }}
+                    onAnnulla={() => setModificaId(null)}
+                  />
+                ) : (
+                  <div key={e.id} style={{ background: "var(--light-bg)", borderRadius: 12, marginBottom: 8, overflow: "hidden" }}>
+                    <button
+                      onClick={() => setEventoEspanso(eventoEspanso === e.id ? null : e.id)}
+                      style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "12px 14px", background: "none", border: "none", cursor: "pointer", textAlign: "left", fontFamily: "inherit" }}
+                    >
+                      <span style={{ width: 9, height: 9, borderRadius: "50%", background: TIPO_COLORE[e.tipo] ?? "var(--blue)", flexShrink: 0 }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13.5, fontWeight: 600 }}>{e.titolo}</div>
+                        <div style={{ fontSize: 11.5, color: "var(--gray-text)" }}>
+                          {TIPO_LABEL[e.tipo] ?? e.tipo} · {new Date(e.quando).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })}
+                          {e.fine && `–${new Date(e.fine).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })}`}
+                        </div>
+                      </div>
+                      <span style={{ fontSize: 11, color: "var(--gray-text)", transform: eventoEspanso === e.id ? "rotate(180deg)" : "none", transition: "transform 0.15s ease" }}>▾</span>
+                    </button>
 
-            {eventiGiornoAperto.length === 0 && !mostraForm && (
-              <p className="placeholder-note" style={{ marginTop: 0 }}>Nessun evento in questo giorno.</p>
-            )}
+                    {eventoEspanso === e.id && (
+                      <div style={{ padding: "0 14px 14px" }}>
+                        {e.descrizione && (
+                          <p style={{ fontSize: 12.5, color: "var(--dark)", margin: "0 0 10px" }}>{e.descrizione}</p>
+                        )}
+                        {e.tipo === "formazione" && e.reparti_coinvolti && e.reparti_coinvolti.length > 0 && (
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 10 }}>
+                            {e.reparti_coinvolti.map((r) => (
+                              <span key={r} style={{ fontSize: 10.5, fontWeight: 600, color: "#fff", background: repartoColor(r), borderRadius: 999, padding: "3px 9px" }}>
+                                {repartoLabel(r)}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        {e.tipo !== "formazione" && e.membri && e.membri.length > 0 && (
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 10 }}>
+                            {e.membri.map((id) => {
+                              const m = membroById(id);
+                              if (!m) return null;
+                              return (
+                                <span key={id} style={{ fontSize: 10.5, fontWeight: 600, color: "#fff", background: repartoColor(m.reparto), borderRadius: 999, padding: "3px 9px" }}>
+                                  {nomeMembro(m)}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        )}
 
-            {eventiGiornoAperto.map((e) =>
-              modificaId === e.id ? (
+                        <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: puoCreare ? 12 : 0 }}>
+                          {e.tipo === "diretta" && (
+                            eventiConScript.includes(e.id) ? (
+                              <a href={`/dashboard/script/${e.id}`} style={{ fontSize: 12, fontWeight: 600, color: "var(--blue)" }}>
+                                📄 Script puntata
+                              </a>
+                            ) : (isRad || (isSpeaker && (e.membri ?? []).includes(userId))) ? (
+                              <a href={`/dashboard/script/${e.id}`} style={{ fontSize: 12, fontWeight: 600, color: "var(--gray-text)" }}>
+                                + Crea script
+                              </a>
+                            ) : null
+                          )}
+                          {e.tipo === "diretta" && eventiConScript.includes(e.id) && (isRad || (isSpeaker && (e.membri ?? []).includes(userId))) && (
+                            <a href={`/dashboard/timer/${e.id}`} style={{ fontSize: 12, fontWeight: 600, color: "var(--blue)" }}>
+                              ⏱ Timer diretta
+                            </a>
+                          )}
+                          {e.tipo === "riunione" && isRad && (
+                            <a href={`/dashboard/punti-riunione/${e.id}`} style={{ fontSize: 12, fontWeight: 600, color: "var(--blue)" }}>
+                              📋 Punti da discutere
+                            </a>
+                          )}
+                          {e.tipo === "registrazione" && (
+                            eventiConScriptSocial.includes(e.id) ? (
+                              <a href={`/dashboard/social-script/${e.id}`} style={{ fontSize: 12, fontWeight: 600, color: "var(--blue)" }}>
+                                📱 Script social
+                              </a>
+                            ) : (isRad || (isSocial && (e.membri ?? []).includes(userId))) ? (
+                              <a href={`/dashboard/social-script/${e.id}`} style={{ fontSize: 12, fontWeight: 600, color: "var(--gray-text)" }}>
+                                + Crea script social
+                              </a>
+                            ) : null
+                          )}
+                          {e.tipo === "formazione" && (
+                            materialePerEvento[e.id]?.url ? (
+                              <a href={materialePerEvento[e.id].url!} target="_blank" rel="noreferrer" style={{ fontSize: 12, fontWeight: 600, color: "var(--blue)" }}>
+                                📎 Apri il materiale
+                              </a>
+                            ) : (
+                              <a href="/dashboard/materiali" style={{ fontSize: 12, fontWeight: 600, color: "var(--gray-text)" }}>
+                                Nessun materiale ancora — vai su Materiali
+                              </a>
+                            )
+                          )}
+                        </div>
+
+                        {puoCreare && (
+                          <div style={{ display: "flex", gap: 6 }}>
+                            <button onClick={() => setModificaId(e.id)} style={smallBtnStyle}>Modifica</button>
+                            <button onClick={() => handleElimina(e.id)} style={{ ...smallBtnStyle, color: "#c22", borderColor: "#f3c2c2" }}>
+                              Elimina
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
+              )}
+
+              {puoCreare && mostraForm && (
                 <EventoForm
-                  key={e.id}
                   giornoISOdefault={giornoAperto}
-                  evento={e}
                   membri={membri}
+                  formats={formats}
                   onSalva={(formData) => {
                     startTransition(async () => {
-                      await updateEvent(e.id, formData);
-                      setModificaId(null);
-                      mostraToast("Evento aggiornato");
+                      await createEvent(formData);
+                      setMostraForm(false);
+                      mostraToast("Evento salvato");
                     });
                   }}
-                  onAnnulla={() => setModificaId(null)}
+                  onAnnulla={() => setMostraForm(false)}
                 />
-              ) : (
-                <div key={e.id} style={{ background: "var(--light-bg)", borderRadius: 12, marginBottom: 8, overflow: "hidden" }}>
-                  <button
-                    onClick={() => setEventoEspanso(eventoEspanso === e.id ? null : e.id)}
-                    style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "12px 14px", background: "none", border: "none", cursor: "pointer", textAlign: "left", fontFamily: "inherit" }}
-                  >
-                    <span style={{ width: 9, height: 9, borderRadius: "50%", background: TIPO_COLORE[e.tipo] ?? "var(--blue)", flexShrink: 0 }} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13.5, fontWeight: 600 }}>{e.titolo}</div>
-                      <div style={{ fontSize: 11.5, color: "var(--gray-text)" }}>
-                        {TIPO_LABEL[e.tipo] ?? e.tipo} · {new Date(e.quando).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })}
-                        {e.fine && `–${new Date(e.fine).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })}`}
-                      </div>
-                    </div>
-                    <span style={{ fontSize: 11, color: "var(--gray-text)", transform: eventoEspanso === e.id ? "rotate(180deg)" : "none", transition: "transform 0.15s ease" }}>▾</span>
-                  </button>
+              )}
 
-                  {eventoEspanso === e.id && (
-                    <div style={{ padding: "0 14px 14px" }}>
-                      {e.descrizione && (
-                        <p style={{ fontSize: 12.5, color: "var(--dark)", margin: "0 0 10px" }}>{e.descrizione}</p>
-                      )}
-                      {e.membri && e.membri.length > 0 && (
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 10 }}>
-                          {e.membri.map((id) => {
-                            const m = membroById(id);
-                            if (!m) return null;
-                            return (
-                              <span key={id} style={{ fontSize: 10.5, fontWeight: 600, color: "#fff", background: repartoColor(m.reparto), borderRadius: 999, padding: "3px 9px" }}>
-                                {nomeMembro(m)}
-                              </span>
-                            );
-                          })}
-                        </div>
-                      )}
-
-                      <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: puoCreare ? 12 : 0 }}>
-                        {e.tipo === "diretta" && (
-                          eventiConScript.includes(e.id) ? (
-                            <a href={`/dashboard/script/${e.id}`} style={{ fontSize: 12, fontWeight: 600, color: "var(--blue)" }}>
-                              📄 Script puntata
-                            </a>
-                          ) : (isRad || (isSpeaker && (e.membri ?? []).includes(userId))) ? (
-                            <a href={`/dashboard/script/${e.id}`} style={{ fontSize: 12, fontWeight: 600, color: "var(--gray-text)" }}>
-                              + Crea script
-                            </a>
-                          ) : null
-                        )}
-                        {e.tipo === "diretta" && eventiConScript.includes(e.id) && (isRad || (isSpeaker && (e.membri ?? []).includes(userId))) && (
-                          <a href={`/dashboard/timer/${e.id}`} style={{ fontSize: 12, fontWeight: 600, color: "var(--blue)" }}>
-                            ⏱ Timer diretta
-                          </a>
-                        )}
-                        {e.tipo === "riunione" && isRad && (
-                          <a href={`/dashboard/punti-riunione/${e.id}`} style={{ fontSize: 12, fontWeight: 600, color: "var(--blue)" }}>
-                            📋 Punti da discutere
-                          </a>
-                        )}
-                        {e.tipo === "registrazione" && (
-                          eventiConScriptSocial.includes(e.id) ? (
-                            <a href={`/dashboard/social-script/${e.id}`} style={{ fontSize: 12, fontWeight: 600, color: "var(--blue)" }}>
-                              📱 Script social
-                            </a>
-                          ) : (isRad || (isSocial && (e.membri ?? []).includes(userId))) ? (
-                            <a href={`/dashboard/social-script/${e.id}`} style={{ fontSize: 12, fontWeight: 600, color: "var(--gray-text)" }}>
-                              + Crea script social
-                            </a>
-                          ) : null
-                        )}
-                      </div>
-
-                      {puoCreare && (
-                        <div style={{ display: "flex", gap: 6 }}>
-                          <button onClick={() => setModificaId(e.id)} style={smallBtnStyle}>Modifica</button>
-                          <button onClick={() => handleElimina(e.id)} style={{ ...smallBtnStyle, color: "#c22", borderColor: "#f3c2c2" }}>
-                            Elimina
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )
-            )}
-
-            {puoCreare && mostraForm && (
-              <EventoForm
-                giornoISOdefault={giornoAperto}
-                membri={membri}
-                onSalva={(formData) => {
-                  startTransition(async () => {
-                    await createEvent(formData);
-                    setMostraForm(false);
-                    mostraToast("Evento salvato");
-                  });
-                }}
-                onAnnulla={() => setMostraForm(false)}
-              />
-            )}
-
-            {puoCreare && !mostraForm && !modificaId && (
-              <button onClick={() => setMostraForm(true)} style={aggiungiBtnStyle}>
-                + Aggiungi evento
-              </button>
-            )}
-            {isPending && <p className="placeholder-note" style={{ marginTop: 8 }}>Salvataggio…</p>}
-          </>
-        )}
+              {puoCreare && !mostraForm && !modificaId && (
+                <button onClick={() => setMostraForm(true)} style={aggiungiBtnStyle}>
+                  + Aggiungi evento
+                </button>
+              )}
+              {isPending && <p className="placeholder-note" style={{ marginTop: 8 }}>Salvataggio…</p>}
+            </>
+          )}
+        </div>
       </div>
 
       {/* --- toast --- */}
@@ -382,23 +393,43 @@ function EventoForm({
   evento,
   giornoISOdefault,
   membri,
+  formats,
   onSalva,
   onAnnulla,
 }: {
   evento?: Evento;
   giornoISOdefault: string;
   membri: Membro[];
+  formats: FormatDiretta[];
   onSalva: (formData: FormData) => void;
   onAnnulla: () => void;
 }) {
   const oraDefault = evento ? new Date(evento.quando).toTimeString().slice(0, 5) : "";
   const oraFineDefault = evento?.fine ? new Date(evento.fine).toTimeString().slice(0, 5) : "";
-  const membriDefault = evento?.membri ?? [];
+
+  const [tipo, setTipo] = useState(evento?.tipo ?? "diretta");
+  const [titolo, setTitolo] = useState(evento?.titolo ?? "");
+  const [membriScelti, setMembriScelti] = useState<string[]>(evento?.membri ?? []);
+  const [repartiScelti, setRepartiScelti] = useState<string[]>(evento?.reparti_coinvolti ?? []);
+  const [invioATutti, setInvioATutti] = useState(false);
 
   const gruppi = REPARTI.map((r) => ({
     ...r,
     persone: membri.filter((m) => m.reparto === r.value),
   })).filter((g) => g.persone.length > 0);
+
+  function toggleMembro(id: string) {
+    setMembriScelti((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
+  }
+  function toggleReparto(v: string) {
+    setRepartiScelti((s) => (s.includes(v) ? s.filter((x) => x !== v) : [...s, v]));
+  }
+  function scegliFormat(formatId: string) {
+    const f = formats.find((x) => x.id === formatId);
+    if (!f) return;
+    setTitolo(f.nome);
+    setMembriScelti(f.membri);
+  }
 
   return (
     <form
@@ -407,7 +438,7 @@ function EventoForm({
     >
       <div>
         <label style={labelStyle}>Titolo</label>
-        <input name="titolo" type="text" required defaultValue={evento?.titolo} placeholder="Es. Diretta Speaker" style={inputStyle} />
+        <input name="titolo" type="text" required value={titolo} onChange={(e) => setTitolo(e.target.value)} placeholder="Es. Diretta Speaker" style={inputStyle} />
       </div>
       <div>
         <label style={labelStyle}>Data</label>
@@ -425,10 +456,11 @@ function EventoForm({
       </div>
       <div>
         <label style={labelStyle}>Tipo</label>
-        <select name="tipo" defaultValue={evento?.tipo ?? "diretta"} style={inputStyle}>
+        <select name="tipo" value={tipo} onChange={(e) => setTipo(e.target.value)} style={inputStyle}>
           <option value="diretta">Diretta</option>
           <option value="riunione">Riunione</option>
           <option value="registrazione">Giornata di registrazione</option>
+          <option value="formazione">Formazione</option>
           <option value="altro">Altro</option>
         </select>
       </div>
@@ -436,34 +468,91 @@ function EventoForm({
         <label style={labelStyle}>Descrizione (facoltativa)</label>
         <textarea name="descrizione" defaultValue={evento?.descrizione ?? ""} placeholder="Dettagli sull'evento..." style={{ ...inputStyle, minHeight: 60, resize: "vertical" }} />
       </div>
-      <div>
-        <label style={labelStyle}>Persone coinvolte</label>
-        {gruppi.length === 0 && (
-          <p style={{ fontSize: 12, color: "var(--gray-text)", margin: 0 }}>
-            Nessun membro attivo ancora — assegna reparti dalla sezione Membri.
-          </p>
-        )}
-        <div style={{ display: "flex", flexDirection: "column", gap: 10, maxHeight: 200, overflowY: "auto", padding: "2px 2px" }}>
-          {gruppi.map((g) => (
-            <div key={g.value}>
-              <div style={{ fontSize: 10.5, fontWeight: 700, color: g.color, textTransform: "uppercase", letterSpacing: "0.03em", marginBottom: 4 }}>
-                {g.label}
-              </div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                {g.persone.map((p) => (
-                  <label
-                    key={p.id}
-                    style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, background: "var(--white)", border: "1px solid var(--border)", borderRadius: 999, padding: "5px 10px" }}
-                  >
-                    <input type="checkbox" name="membri" value={p.id} defaultChecked={membriDefault.includes(p.id)} />
-                    {p.full_name || p.email}
-                  </label>
-                ))}
-              </div>
-            </div>
-          ))}
+
+      {tipo === "diretta" && formats.length > 0 && (
+        <div>
+          <label style={labelStyle}>Format (facoltativo — precompila titolo e speaker)</label>
+          <select onChange={(e) => scegliFormat(e.target.value)} defaultValue="" style={inputStyle}>
+            <option value="">— Scegli un format —</option>
+            {formats.map((f) => (
+              <option key={f.id} value={f.id}>{f.nome}</option>
+            ))}
+          </select>
         </div>
-      </div>
+      )}
+
+      {tipo === "riunione" && (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--white)", borderRadius: 10, padding: "10px 12px" }}>
+          <span style={{ fontSize: 12.5, fontWeight: 600 }}>Invia a tutti i membri</span>
+          <button
+            type="button"
+            onClick={() => setInvioATutti(!invioATutti)}
+            style={{ width: 38, height: 22, borderRadius: 20, border: "none", cursor: "pointer", position: "relative", background: invioATutti ? "var(--blue)" : "#d7dae3" }}
+          >
+            <input type="hidden" name="invia_a_tutti" value={invioATutti ? "on" : "off"} />
+            <span style={{ position: "absolute", top: 2, left: invioATutti ? 18 : 2, width: 18, height: 18, borderRadius: "50%", background: "#fff", transition: "left 0.2s ease", boxShadow: "0 1px 3px rgba(0,0,0,0.25)" }} />
+          </button>
+        </div>
+      )}
+
+      {tipo === "formazione" ? (
+        <div>
+          <label style={labelStyle}>Reparti coinvolti</label>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {REPARTI.map((r) => (
+              <button
+                type="button"
+                key={r.value}
+                onClick={() => toggleReparto(r.value)}
+                style={{
+                  fontSize: 12, fontWeight: 600, padding: "6px 12px", borderRadius: 999, cursor: "pointer",
+                  border: `1px solid ${repartiScelti.includes(r.value) ? r.color : "var(--border)"}`,
+                  background: repartiScelti.includes(r.value) ? r.color : "var(--white)",
+                  color: repartiScelti.includes(r.value) ? "#fff" : "var(--dark)",
+                }}
+              >
+                {r.label}
+              </button>
+            ))}
+          </div>
+          {repartiScelti.map((r) => <input key={r} type="hidden" name="reparti_coinvolti" value={r} />)}
+        </div>
+      ) : !invioATutti ? (
+        <div>
+          <label style={labelStyle}>Persone coinvolte</label>
+          {gruppi.length === 0 && (
+            <p style={{ fontSize: 12, color: "var(--gray-text)", margin: 0 }}>
+              Nessun membro attivo ancora — assegna reparti dalla sezione Membri.
+            </p>
+          )}
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, maxHeight: 200, overflowY: "auto", padding: "2px 2px" }}>
+            {gruppi.map((g) => (
+              <div key={g.value}>
+                <div style={{ fontSize: 10.5, fontWeight: 700, color: g.color, textTransform: "uppercase", letterSpacing: "0.03em", marginBottom: 4 }}>
+                  {g.label}
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  {g.persone.map((p) => (
+                    <label
+                      key={p.id}
+                      style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, background: "var(--white)", border: "1px solid var(--border)", borderRadius: 999, padding: "5px 10px" }}
+                    >
+                      <input type="checkbox" checked={membriScelti.includes(p.id)} onChange={() => toggleMembro(p.id)} />
+                      {p.full_name || p.email}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+          {membriScelti.map((id) => <input key={id} type="hidden" name="membri" value={id} />)}
+        </div>
+      ) : (
+        <p style={{ fontSize: 11.5, color: "var(--gray-text)", fontStyle: "italic", margin: 0 }}>
+          Verranno coinvolti tutti i membri attivi della dashboard.
+        </p>
+      )}
+
       <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
         <button type="submit" className="btn-primary" style={{ flex: 1 }}>Salva</button>
         <button type="button" onClick={onAnnulla} style={{ padding: "10px 16px", borderRadius: 9, border: "1px solid var(--border)", background: "var(--white)", fontSize: 13 }}>

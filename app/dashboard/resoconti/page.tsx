@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
-import { updateQualityFeedback } from "@/lib/actions";
+import { getEffectiveProfile } from "@/lib/vista";
+import { updateQualityFeedback, eliminaResocontoQualita } from "@/lib/actions";
 
 const STATO_LABEL: Record<string, { label: string; bg: string; fg: string }> = {
   in_revisione: { label: "In revisione", bg: "#FEF3C7", fg: "#92400E" },
@@ -10,7 +11,7 @@ const STATO_LABEL: Record<string, { label: string; bg: string; fg: string }> = {
 export default async function ResocontiPage() {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  const { data: profile } = await supabase.from("profiles").select("*").eq("id", user!.id).single();
+  const profile = await getEffectiveProfile(supabase, user!.id);
 
   if (profile.ruolo !== "rad") {
     return (
@@ -39,12 +40,51 @@ export default async function ResocontiPage() {
   const autoreById = (id: string) => (autori ?? []).find((a) => a.id === id);
   const eventoById = (id: string) => (eventi ?? []).find((e) => e.id === id);
 
+  // Riepilogo per criterio: quante volte OK / da migliorare / criticità.
+  const { data: criteri } = await supabase.from("criteri_qualita").select("*").order("ordine");
+  const { data: valutazioni } = await supabase.from("quality_report_criteri").select("criterio_id, classificazione");
+  const riepilogoCriteri = (criteri ?? []).map((c) => {
+    const righe = (valutazioni ?? []).filter((v) => v.criterio_id === c.id);
+    return {
+      testo: c.testo,
+      ok: righe.filter((r) => r.classificazione === "ok").length,
+      daMigliorare: righe.filter((r) => r.classificazione === "da_migliorare").length,
+      criticita: righe.filter((r) => r.classificazione === "criticita").length,
+    };
+  }).filter((r) => r.ok + r.daMigliorare + r.criticita > 0);
+
   return (
     <div>
       <h2 style={{ fontSize: 22, marginBottom: 6 }}>Resoconti qualità</h2>
       <p style={{ color: "var(--gray-text)", fontSize: 13, marginBottom: 24 }}>
         Tutti i resoconti inviati dal reparto qualità. Lascia un feedback e rimandali indietro se serve.
       </p>
+
+      {riepilogoCriteri.length > 0 && (
+        <div style={{ marginBottom: 28, overflowX: "auto" }}>
+          <div className="section-label" style={{ marginTop: 0 }}>Riepilogo per criterio</div>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
+            <thead>
+              <tr style={{ background: "var(--light-bg)" }}>
+                <th style={{ textAlign: "left", padding: "8px 10px" }}>Criterio</th>
+                <th style={{ padding: "8px 10px", color: "#2C7A45" }}>OK</th>
+                <th style={{ padding: "8px 10px", color: "#D97706" }}>Da migliorare</th>
+                <th style={{ padding: "8px 10px", color: "#DC2626" }}>Criticità</th>
+              </tr>
+            </thead>
+            <tbody>
+              {riepilogoCriteri.map((r) => (
+                <tr key={r.testo} style={{ borderBottom: "1px solid var(--border)" }}>
+                  <td style={{ padding: "8px 10px" }}>{r.testo}</td>
+                  <td style={{ textAlign: "center", padding: "8px 10px" }}>{r.ok || "—"}</td>
+                  <td style={{ textAlign: "center", padding: "8px 10px" }}>{r.daMigliorare || "—"}</td>
+                  <td style={{ textAlign: "center", padding: "8px 10px" }}>{r.criticita || "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {(reports ?? []).length === 0 && (
         <p className="placeholder-note" style={{ marginTop: 0 }}>Nessun resoconto ancora inviato.</p>
@@ -115,6 +155,19 @@ export default async function ResocontiPage() {
                     </button>
                   </div>
                 </form>
+
+                {r.evento_id && (
+                  <form
+                    action={async () => {
+                      "use server";
+                      await eliminaResocontoQualita(r.evento_id, r.puntata_titolo);
+                    }}
+                  >
+                    <button type="submit" style={{ border: "none", background: "none", color: "#c22", fontSize: 11.5, cursor: "pointer" }}>
+                      Elimina resoconto
+                    </button>
+                  </form>
+                )}
               </div>
             </details>
           );

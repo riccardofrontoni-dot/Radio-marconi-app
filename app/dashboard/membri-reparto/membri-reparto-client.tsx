@@ -2,12 +2,13 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { createTask, inviaAvviso, toggleTask, deleteTask } from "@/lib/actions";
+import { createTask, inviaAvviso, toggleTask, deleteTask, creaFormat, eliminaFormat } from "@/lib/actions";
 import { repartoColor, repartoLabel } from "@/lib/reparti";
 import TaskAccordionList from "../task/task-accordion";
 
 type Membro = { id: string; full_name: string | null; email: string; reparto: string | null };
 type Task = { id: string; titolo: string; completato: boolean; stato: string; assegnato_a: string | null; puntata_data: string | null; descrizione: string | null };
+type Format = { id: string; nome: string; membri: string[] };
 
 function iniziali(nome: string) {
   return nome.split(" ").map((s) => s[0]).slice(0, 2).join("").toUpperCase();
@@ -17,15 +18,46 @@ export default function MembriRepartoClient({
   membri,
   tasksIniziali,
   reparto,
+  formatsIniziali,
 }: {
   membri: Membro[];
   tasksIniziali: Task[];
   reparto: string | null;
+  formatsIniziali: Format[];
 }) {
   const router = useRouter();
   const [aperto, setAperto] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [mostraFormatForm, setMostraFormatForm] = useState(false);
+  const [nomeFormat, setNomeFormat] = useState("");
+  const [membriFormat, setMembriFormat] = useState<string[]>([]);
+
+  function toggleMembroFormat(id: string) {
+    setMembriFormat((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
+  }
+  function salvaFormat() {
+    if (!nomeFormat.trim()) return;
+    const fd = new FormData();
+    fd.set("nome", nomeFormat);
+    fd.set("reparto", reparto ?? "");
+    membriFormat.forEach((id) => fd.append("membri", id));
+    startTransition(async () => {
+      await creaFormat(fd);
+      mostraToast(`Format "${nomeFormat}" creato`);
+      setNomeFormat("");
+      setMembriFormat([]);
+      setMostraFormatForm(false);
+      router.refresh();
+    });
+  }
+  function rimuoviFormat(id: string, nome: string) {
+    startTransition(async () => {
+      await eliminaFormat(id);
+      mostraToast(`Format "${nome}" eliminato`);
+      router.refresh();
+    });
+  }
 
   const [nomeTask, setNomeTask] = useState("");
   const [scadenza, setScadenza] = useState("");
@@ -98,6 +130,62 @@ export default function MembriRepartoClient({
       <p style={{ color: "var(--gray-text)", fontSize: 13, marginBottom: 24 }}>
         Clicca un membro per assegnargli una task o mandargli un avviso.
       </p>
+
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+        <div className="section-label" style={{ marginTop: 0, marginBottom: 0 }}>Format</div>
+        <button onClick={() => setMostraFormatForm(!mostraFormatForm)} className="btn-primary" style={{ fontSize: 11.5, padding: "6px 12px" }}>
+          {mostraFormatForm ? "Annulla" : "+ Nuovo format"}
+        </button>
+      </div>
+      <p style={{ fontSize: 12, color: "var(--gray-text)", marginTop: -6, marginBottom: 14 }}>
+        Un format ricorrente (es. "Future") con le persone che ne fanno parte — quando crei una diretta sul calendario, potrai scegliere il format per precompilare titolo e persone coinvolte.
+      </p>
+
+      {mostraFormatForm && (
+        <div className="card" style={{ padding: 16, marginBottom: 16, maxWidth: 480 }}>
+          <div style={{ marginBottom: 10 }}>
+            <label style={{ fontSize: 12, fontWeight: 600, display: "block", marginBottom: 5 }}>Nome del format</label>
+            <input
+              value={nomeFormat}
+              onChange={(e) => setNomeFormat(e.target.value)}
+              type="text"
+              placeholder="Es. Future"
+              style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--border)", fontSize: 13, fontFamily: "inherit" }}
+            />
+          </div>
+          <label style={{ fontSize: 12, fontWeight: 600, display: "block", marginBottom: 5 }}>Persone del format</label>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
+            {membri.map((m) => (
+              <label
+                key={m.id}
+                style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, background: "var(--white)", border: "1px solid var(--border)", borderRadius: 999, padding: "5px 10px", cursor: "pointer" }}
+              >
+                <input type="checkbox" checked={membriFormat.includes(m.id)} onChange={() => toggleMembroFormat(m.id)} />
+                {m.full_name || m.email}
+              </label>
+            ))}
+          </div>
+          <button onClick={salvaFormat} disabled={isPending} className="btn-primary" style={{ width: "100%" }}>
+            Crea format
+          </button>
+        </div>
+      )}
+
+      {formatsIniziali.length > 0 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 28 }}>
+          {formatsIniziali.map((f) => (
+            <div key={f.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", border: "1px solid var(--border)", borderRadius: 10 }}>
+              <span style={{ fontSize: 13, fontWeight: 600, flex: 1 }}>{f.nome}</span>
+              <span style={{ fontSize: 11.5, color: "var(--gray-text)" }}>
+                {f.membri.map((id) => membri.find((m) => m.id === id)?.full_name?.split(" ")[0]).filter(Boolean).join(", ") || "nessuno"}
+              </span>
+              <button onClick={() => rimuoviFormat(f.id, f.nome)} style={{ border: "none", background: "none", color: "#c22", fontSize: 11.5, cursor: "pointer" }}>
+                Elimina
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
       {membri.length === 0 && (
         <p className="placeholder-note" style={{ marginTop: 0 }}>Nessun membro nel reparto ancora.</p>

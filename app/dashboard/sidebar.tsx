@@ -73,6 +73,8 @@ export default function Sidebar({
 
   const badge = isRad ? "RAD" : `${isCapo ? "Capo reparto — " : ""}${REPARTO_LABEL[reparto ?? ""] ?? ""}`;
   const vistaAttiva = veroRad && vistaAttuale !== "rad";
+  const ANALISI_PATHS = ["/dashboard/analisi", "/dashboard/analisi-puntate", "/dashboard/social", "/dashboard/resoconti", "/dashboard/valutazioni", "/dashboard/storico"];
+  const inAnalisi = ANALISI_PATHS.some((p) => pathname.startsWith(p));
 
   function cambiaVista(valore: string) {
     startTransition(async () => {
@@ -146,7 +148,6 @@ export default function Sidebar({
           <div className="nav-divider" style={{ height: 1, background: "var(--border)", margin: "14px 8px" }} />
           <NavLabel>Social</NavLabel>
           <NavItem href="/dashboard/social-script" pathname={pathname}>I miei script social</NavItem>
-          <NavItem href="/dashboard/analisi-social" pathname={pathname}>Analisi social</NavItem>
         </>
       )}
 
@@ -163,31 +164,69 @@ export default function Sidebar({
       {isRad && (
         <>
           <div className="nav-divider" style={{ height: 1, background: "var(--border)", margin: "14px 8px" }} />
-          <NavLabel>Amministrazione</NavLabel>
-          <NavItem href="/dashboard/admin" pathname={pathname}>Nuovi iscritti</NavItem>
-          <NavItem href="/dashboard/membri" pathname={pathname}>Membri</NavItem>
+          <NavLabel>RAD</NavLabel>
 
-          <div className="nav-divider" style={{ height: 1, background: "var(--border)", margin: "14px 8px" }} />
-          <NavLabel>Contenuti</NavLabel>
-          <NavItem href="/dashboard/script-archivio" pathname={pathname}>Script puntate</NavItem>
-          <NavItem href="/dashboard/social" pathname={pathname}>Social</NavItem>
-          <NavItem href="/dashboard/analisi-social" pathname={pathname}>Analisi social</NavItem>
-
-          <div className="nav-divider" style={{ height: 1, background: "var(--border)", margin: "14px 8px" }} />
-          <NavLabel>Analisi</NavLabel>
-          <NavItem href="/dashboard/analisi" pathname={pathname}>Analisi</NavItem>
-          <NavItem href="/dashboard/analisi-puntate" pathname={pathname}>Analisi puntate</NavItem>
-          <NavItem href="/dashboard/resoconti" pathname={pathname}>
-            <span style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
-              Resoconti qualità
+          <div style={{ display: "flex", gap: 3, background: "var(--border)", borderRadius: 9, padding: 3, margin: "0 8px 10px" }}>
+            <Link
+              href="/dashboard/admin"
+              style={{
+                flex: 1, textAlign: "center", padding: "6px 4px", borderRadius: 7, fontSize: 11, fontWeight: 700,
+                textDecoration: "none", transition: "background 0.15s ease",
+                background: inAnalisi ? "transparent" : "var(--white)",
+                color: inAnalisi ? "var(--gray-text)" : "var(--dark)",
+              }}
+            >
+              Andamento progetto
+            </Link>
+            <Link
+              href="/dashboard/analisi"
+              style={{
+                flex: 1, textAlign: "center", padding: "6px 4px", borderRadius: 7, fontSize: 11, fontWeight: 700,
+                textDecoration: "none", transition: "background 0.15s ease",
+                background: inAnalisi ? "var(--white)" : "transparent",
+                color: inAnalisi ? "var(--dark)" : "var(--gray-text)",
+              }}
+            >
+              Analisi
               {resocontiInAttesa > 0 && (
-                <span style={{ background: "#DC2626", color: "#fff", fontSize: 10.5, fontWeight: 700, borderRadius: 999, minWidth: 18, height: 18, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 5px" }}>
+                <span style={{ marginLeft: 5, background: "#DC2626", color: "#fff", fontSize: 9.5, fontWeight: 700, borderRadius: 999, padding: "1px 6px" }}>
                   {resocontiInAttesa}
                 </span>
               )}
-            </span>
-          </NavItem>
-          <NavItem href="/dashboard/valutazioni" pathname={pathname}>Valutazioni</NavItem>
+            </Link>
+          </div>
+
+          {!inAnalisi && (
+            <>
+              <NavItem href="/dashboard/admin" pathname={pathname}>Nuovi iscritti</NavItem>
+              <NavItem href="/dashboard/membri" pathname={pathname}>Membri</NavItem>
+              <NavItem href="/dashboard/criteri-qualita" pathname={pathname}>Criteri qualità</NavItem>
+
+              <div className="nav-divider" style={{ height: 1, background: "var(--border)", margin: "14px 8px" }} />
+              <NavLabel>Contenuti</NavLabel>
+              <NavItem href="/dashboard/script-archivio" pathname={pathname}>Script puntate</NavItem>
+            </>
+          )}
+
+          {inAnalisi && (
+            <>
+              <NavItem href="/dashboard/analisi" pathname={pathname}>Persone</NavItem>
+              <NavItem href="/dashboard/analisi-puntate" pathname={pathname}>Puntate</NavItem>
+              <NavItem href="/dashboard/social" pathname={pathname}>Social</NavItem>
+              <NavItem href="/dashboard/resoconti" pathname={pathname}>
+                <span style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
+                  Resoconti qualità
+                  {resocontiInAttesa > 0 && (
+                    <span style={{ background: "#DC2626", color: "#fff", fontSize: 10.5, fontWeight: 700, borderRadius: 999, minWidth: 18, height: 18, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 5px" }}>
+                      {resocontiInAttesa}
+                    </span>
+                  )}
+                </span>
+              </NavItem>
+              <NavItem href="/dashboard/valutazioni" pathname={pathname}>Valutazioni</NavItem>
+              <NavItem href="/dashboard/storico" pathname={pathname}>Storico</NavItem>
+            </>
+          )}
         </>
       )}
 

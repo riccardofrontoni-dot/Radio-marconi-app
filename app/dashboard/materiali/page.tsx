@@ -26,12 +26,23 @@ export default async function MaterialiPage() {
     })
   );
 
+  const { data: eventiFormazione } = await supabase
+    .from("events")
+    .select("id, titolo, quando, reparti_coinvolti")
+    .eq("tipo", "formazione")
+    .order("quando", { ascending: false });
+
   return (
     <MaterialiClient
       materiali={conLink}
+      eventiFormazione={eventiFormazione ?? []}
       mioId={profile.id}
       sonoRad={profile.ruolo === "rad"}
-      puoCaricare={profile.ruolo === "rad" || profile.ruolo === "professore"}
+      puoCaricareGuida={profile.ruolo === "rad" || profile.ruolo === "professore"}
+      puoCaricareFormazione={profile.ruolo === "rad"}
+      puoCaricareTutorial={profile.ruolo === "rad" || profile.ruolo === "professore" || profile.ruolo === "capo"}
+      repartoCapo={profile.ruolo === "capo" ? profile.reparto : null}
+      mioReparto={profile.reparto}
     />
   );
 }

@@ -45,6 +45,10 @@ export default async function AnalisiPuntatePage({
     ? await supabase.from("voti_membri").select("evento_id, attitudine, professionalita, performance").in("evento_id", eventIds)
     : { data: [] as { evento_id: string; attitudine: number; professionalita: number; performance: number }[] };
 
+  const { data: qualityReports } = eventIds.length
+    ? await supabase.from("quality_reports").select("evento_id, voto").in("evento_id", eventIds)
+    : { data: [] as { evento_id: string; voto: number }[] };
+
   const { data: membri } = await supabase.from("profiles").select("id, full_name, email");
   const nomeMembro = (id: string) => {
     const m = (membri ?? []).find((mm) => mm.id === id);
@@ -53,9 +57,15 @@ export default async function AnalisiPuntatePage({
 
   const puntate = (eventi ?? []).map((e) => {
     const votiEvento = (voti ?? []).filter((v) => v.evento_id === e.id);
-    const punteggio = votiEvento.length
+    const votoMembri = votiEvento.length
       ? votiEvento.reduce((a, v) => a + (v.attitudine + v.professionalita + v.performance) / 3, 0) / votiEvento.length
       : null;
+    const votoQualita = (qualityReports ?? []).find((q) => q.evento_id === e.id)?.voto ?? null;
+
+    // Media tra il giudizio individuale (persone) e il voto della checklist qualità (processo), quando entrambi ci sono.
+    const componenti = [votoMembri, votoQualita].filter((v): v is number => v !== null);
+    const punteggio = componenti.length ? componenti.reduce((a, b) => a + b, 0) / componenti.length : null;
+
     return {
       ...e,
       punteggio,
@@ -83,7 +93,7 @@ export default async function AnalisiPuntatePage({
         </div>
       </div>
       <p style={{ color: "var(--gray-text)", fontSize: 13, marginBottom: 24 }}>
-        Le dirette del mese ordinate per punteggio medio (media dei voti individuali dati a chi era presente).
+        Le dirette del mese ordinate per punteggio medio (voti individuali e checklist qualità, quando presenti).
       </p>
 
       {migliore && (

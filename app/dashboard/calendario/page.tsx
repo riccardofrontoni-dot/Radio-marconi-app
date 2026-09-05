@@ -52,6 +52,18 @@ export default async function CalendarioPage({
   const isSocial = profile.reparto === "social";
   const isRad = profile.ruolo === "rad";
 
+  const { data: formats } = await supabase.from("format_diretta").select("*").eq("reparto", "speaker").order("nome");
+
+  const { data: materialiFormazione } = eventIds.length
+    ? await supabase.from("materiali").select("evento_id, storage_path, nome").eq("categoria", "formazione").in("evento_id", eventIds)
+    : { data: [] as { evento_id: string; storage_path: string; nome: string }[] };
+  const materialePerEvento: Record<string, { url: string | null; nome: string }> = {};
+  for (const m of materialiFormazione ?? []) {
+    if (!m.evento_id) continue;
+    const { data } = await supabase.storage.from("materiali").createSignedUrl(m.storage_path, 60 * 60);
+    materialePerEvento[m.evento_id] = { url: data?.signedUrl ?? null, nome: m.nome };
+  }
+
   return (
     <CalendarioClient
       anno={anno}
@@ -60,6 +72,8 @@ export default async function CalendarioPage({
       fineGriglia={fineGriglia.toISOString()}
       events={events ?? []}
       membri={membri ?? []}
+      formats={formats ?? []}
+      materialePerEvento={materialePerEvento}
       puoCreare={puoCreare}
       eventiConScript={eventiConScript}
       eventiConScriptSocial={eventiConScriptSocial}

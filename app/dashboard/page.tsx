@@ -404,15 +404,22 @@ async function AndamentoProgetto({ supabase, nomeUtente }: { supabase: ReturnTyp
     ? await supabase.from("voti_membri").select("evento_id, membro_id, attitudine, professionalita, performance").in("evento_id", direteIds)
     : { data: [] as { evento_id: string; membro_id: string; attitudine: number; professionalita: number; performance: number }[] };
 
-  // --- analisi puntate: media per evento (poi media generale) ---
+  const { data: qualityReportsMese } = direteIds.length
+    ? await supabase.from("quality_reports").select("evento_id, voto").in("evento_id", direteIds)
+    : { data: [] as { evento_id: string; voto: number }[] };
+
+  // --- analisi puntate: media per evento (voti individuali + checklist qualità, poi media generale) ---
   const mediaPerEvento: Record<string, number[]> = {};
   (voti ?? []).forEach((v) => {
     (mediaPerEvento[v.evento_id] ??= []).push((v.attitudine + v.professionalita + v.performance) / 3);
   });
-  const punteggiEventi = Object.entries(mediaPerEvento).map(([eventoId, arr]) => ({
-    eventoId,
-    media: arr.reduce((a, b) => a + b, 0) / arr.length,
-  }));
+  const punteggiEventi = Array.from(new Set([...Object.keys(mediaPerEvento), ...(qualityReportsMese ?? []).map((q) => q.evento_id)])).map((eventoId) => {
+    const arr = mediaPerEvento[eventoId] ?? [];
+    const votoMembri = arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
+    const votoQualita = (qualityReportsMese ?? []).find((q) => q.evento_id === eventoId)?.voto ?? null;
+    const componenti = [votoMembri, votoQualita].filter((v): v is number => v !== null);
+    return { eventoId, media: componenti.reduce((a, b) => a + b, 0) / componenti.length };
+  });
   const episodiPercent = punteggiEventi.length
     ? Math.round((punteggiEventi.reduce((a, p) => a + p.media, 0) / punteggiEventi.length / 5) * 100)
     : null;

@@ -28,5 +28,11 @@ export default async function MembriRepartoPage() {
     .select("*")
     .eq("reparto", profile.reparto);
 
-  return <MembriRepartoClient membri={membri ?? []} tasksIniziali={tasks ?? []} reparto={profile.reparto} />;
+  const { data: formats } = await supabase
+    .from("format_diretta")
+    .select("*")
+    .eq("reparto", profile.reparto)
+    .order("nome");
+
+  return <MembriRepartoClient membri={membri ?? []} tasksIniziali={tasks ?? []} reparto={profile.reparto} formatsIniziali={formats ?? []} />;
 }

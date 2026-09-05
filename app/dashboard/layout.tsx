@@ -93,7 +93,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         veroRad={veroRad}
         vistaAttuale={vistaAttuale}
       />
-      <div className="dashboard-main" style={{ flex: 1, padding: "36px 44px", maxWidth: 980, width: "100%" }}>
+      <div className="dashboard-main" style={{ flex: 1, padding: "36px 44px", maxWidth: 1300, width: "100%" }}>
         {children}
       </div>
     </div>

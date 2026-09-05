@@ -3,6 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
+async function registraAttivita(azione: "creato" | "eliminato", tipo: string, descrizione: string, reparto?: string | null) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  await supabase.from("registro_attivita").insert({ azione, tipo, descrizione, reparto: reparto ?? null, eseguito_da: user?.id });
+}
+
 export async function createObiettivo(formData: FormData) {
   const supabase = createClient();
   const tipo = formData.get("tipo") as string;
@@ -148,6 +154,7 @@ export async function createTask(formData: FormData) {
       creato_da: user?.id,
     });
   }
+  await registraAttivita("creato", "task", `Task "${titolo}"`, profile?.reparto);
 
   revalidatePath("/dashboard/gestione");
   revalidatePath("/dashboard");
@@ -157,7 +164,9 @@ export async function createTask(formData: FormData) {
 
 export async function deleteTask(taskId: string) {
   const supabase = createClient();
+  const { data: task } = await supabase.from("tasks").select("titolo, reparto").eq("id", taskId).maybeSingle();
   await supabase.from("tasks").delete().eq("id", taskId);
+  await registraAttivita("eliminato", "task", `Task "${task?.titolo ?? ""}"`, task?.reparto);
   revalidatePath("/dashboard/gestione");
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/task");
@@ -188,8 +197,18 @@ export async function createEvent(formData: FormData) {
   const ora = formData.get("ora") as string; // HH:MM
   const oraFine = formData.get("ora_fine") as string; // HH:MM
   const tipo = (formData.get("tipo") as string) || "diretta";
-  const membri = formData.getAll("membri") as string[];
+  let membri = formData.getAll("membri") as string[];
+  const repartiCoinvolti = formData.getAll("reparti_coinvolti") as string[];
   const descrizione = formData.get("descrizione") as string;
+  const invioATutti = formData.get("invia_a_tutti") === "on";
+
+  if (tipo === "riunione" && invioATutti) {
+    const { data: tutti } = await supabase.from("profiles").select("id").eq("status", "attivo");
+    membri = (tutti ?? []).map((m) => m.id);
+  }
+  if (tipo === "formazione") {
+    membri = []; // la formazione coinvolge reparti interi, non persone specifiche
+  }
 
   const quando = new Date(`${data}T${ora || "00:00"}:00`).toISOString();
   const fine = oraFine ? new Date(`${data}T${oraFine}:00`).toISOString() : null;
@@ -200,8 +219,10 @@ export async function createEvent(formData: FormData) {
     fine,
     tipo,
     membri,
+    reparti_coinvolti: tipo === "formazione" ? repartiCoinvolti : null,
     descrizione: descrizione || null,
   });
+  await registraAttivita("creato", "evento", `Evento "${titolo}"`);
 
   revalidatePath("/dashboard/calendario");
 }
@@ -214,15 +235,25 @@ export async function updateEvent(eventId: string, formData: FormData) {
   const ora = formData.get("ora") as string;
   const oraFine = formData.get("ora_fine") as string;
   const tipo = (formData.get("tipo") as string) || "diretta";
-  const membri = formData.getAll("membri") as string[];
+  let membri = formData.getAll("membri") as string[];
+  const repartiCoinvolti = formData.getAll("reparti_coinvolti") as string[];
   const descrizione = formData.get("descrizione") as string;
+  const invioATutti = formData.get("invia_a_tutti") === "on";
+
+  if (tipo === "riunione" && invioATutti) {
+    const { data: tutti } = await supabase.from("profiles").select("id").eq("status", "attivo");
+    membri = (tutti ?? []).map((m) => m.id);
+  }
+  if (tipo === "formazione") {
+    membri = [];
+  }
 
   const quando = new Date(`${data}T${ora || "00:00"}:00`).toISOString();
   const fine = oraFine ? new Date(`${data}T${oraFine}:00`).toISOString() : null;
 
   await supabase
     .from("events")
-    .update({ titolo, quando, fine, tipo, membri, descrizione: descrizione || null })
+    .update({ titolo, quando, fine, tipo, membri, reparti_coinvolti: tipo === "formazione" ? repartiCoinvolti : null, descrizione: descrizione || null })
     .eq("id", eventId);
 
   revalidatePath("/dashboard/calendario");
@@ -230,7 +261,9 @@ export async function updateEvent(eventId: string, formData: FormData) {
 
 export async function deleteEvent(eventId: string) {
   const supabase = createClient();
+  const { data: evento } = await supabase.from("events").select("titolo").eq("id", eventId).maybeSingle();
   await supabase.from("events").delete().eq("id", eventId);
+  await registraAttivita("eliminato", "evento", `Evento "${evento?.titolo ?? ""}"`);
   revalidatePath("/dashboard/calendario");
 }
 
@@ -287,21 +320,45 @@ export async function upsertQualityReport(eventoId: string, formData: FormData) 
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
+  const { data: esisteGia } = await supabase.from("quality_reports").select("evento_id").eq("evento_id", eventoId).maybeSingle();
+  const puntataTitolo = formData.get("puntata_titolo") as string;
+
   await supabase.from("quality_reports").upsert(
     {
       evento_id: eventoId,
-      puntata_titolo: formData.get("puntata_titolo") as string,
+      puntata_titolo: puntataTitolo,
       punti_di_forza: formData.get("punti_di_forza") as string,
       criticita: formData.get("criticita") as string,
-      voto: Number(formData.get("voto")),
       creato_da: user?.id,
       stato: "in_revisione", // ogni modifica torna in revisione per il RAD
     },
     { onConflict: "evento_id" }
   );
 
+  if (!esisteGia) {
+    await registraAttivita("creato", "resoconto_qualita", `Resoconto per "${puntataTitolo}"`, "qualita");
+  }
+
   revalidatePath("/dashboard/qualita");
   revalidatePath("/dashboard/resoconti");
+}
+
+export async function eliminaResocontoQualita(eventoId: string, puntataTitolo: string) {
+  const supabase = createClient();
+
+  const { data: valutazioni } = await supabase.from("quality_report_criteri").select("task_id").eq("evento_id", eventoId);
+  const taskIds = (valutazioni ?? []).map((v) => v.task_id).filter(Boolean) as string[];
+  if (taskIds.length > 0) {
+    await supabase.from("tasks").delete().in("id", taskIds);
+  }
+  await supabase.from("quality_report_criteri").delete().eq("evento_id", eventoId);
+  await supabase.from("quality_reports").delete().eq("evento_id", eventoId);
+
+  await registraAttivita("eliminato", "resoconto_qualita", `Resoconto per "${puntataTitolo}"`, "qualita");
+
+  revalidatePath("/dashboard/qualita");
+  revalidatePath("/dashboard/resoconti");
+  revalidatePath("/dashboard/task");
 }
 
 export async function impostaVistaRad(valore: string) {
@@ -481,30 +538,6 @@ export async function impostaPresenza(eventoId: string, membroId: string, presen
   revalidatePath("/dashboard/analisi");
 }
 
-export async function creaContenutoSocial(formData: FormData) {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  await supabase.from("contenuti_social").insert({
-    nome: formData.get("nome") as string,
-    tipologia: (formData.get("tipologia") as string) || "format",
-    data_pubblicazione: (formData.get("data_pubblicazione") as string) || null,
-    visualizzazioni: Number(formData.get("visualizzazioni")) || 0,
-    engagement: Number(formData.get("engagement")) || 0,
-    retention_rate: Number(formData.get("retention_rate")) || 0,
-    follower_acquisiti: Number(formData.get("follower_acquisiti")) || 0,
-    creato_da: user?.id,
-  });
-
-  revalidatePath("/dashboard/analisi-social");
-}
-
-export async function eliminaContenutoSocial(id: string) {
-  const supabase = createClient();
-  await supabase.from("contenuti_social").delete().eq("id", id);
-  revalidatePath("/dashboard/analisi-social");
-}
-
 export async function caricaMateriale(formData: FormData) {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -512,6 +545,9 @@ export async function caricaMateriale(formData: FormData) {
   const file = formData.get("file") as File;
   const nome = (formData.get("nome") as string) || file?.name || "Senza nome";
   const descrizione = formData.get("descrizione") as string;
+  const categoria = (formData.get("categoria") as string) || "guida";
+  const reparto = formData.get("reparto") as string;
+  const eventoId = formData.get("evento_id") as string;
 
   if (!file || file.size === 0) return;
 
@@ -527,10 +563,14 @@ export async function caricaMateriale(formData: FormData) {
     storage_path: percorso,
     tipo: file.type || estensione,
     dimensione: file.size,
+    categoria,
+    reparto: categoria === "tutorial" ? (reparto || null) : null,
+    evento_id: categoria === "formazione" ? (eventoId || null) : null,
     caricato_da: user?.id,
   });
 
   revalidatePath("/dashboard/materiali");
+  revalidatePath("/dashboard/calendario");
 }
 
 export async function eliminaMateriale(id: string, storagePath: string) {
@@ -538,6 +578,7 @@ export async function eliminaMateriale(id: string, storagePath: string) {
   await supabase.storage.from("materiali").remove([storagePath]);
   await supabase.from("materiali").delete().eq("id", id);
   revalidatePath("/dashboard/materiali");
+  revalidatePath("/dashboard/calendario");
 }
 
 export async function creaProgetto(formData: FormData) {
@@ -590,6 +631,7 @@ export async function creaProgetto(formData: FormData) {
     evento_id: eventoId,
     creato_da: user?.id,
   });
+  await registraAttivita("creato", "progetto", `Progetto "${nome}"`);
 
   revalidatePath("/dashboard/progetti");
   revalidatePath("/dashboard/calendario");
@@ -597,9 +639,136 @@ export async function creaProgetto(formData: FormData) {
 
 export async function eliminaProgetto(id: string, bandoPath: string | null, eventoId: string | null) {
   const supabase = createClient();
+  const { data: progetto } = await supabase.from("progetti_professori").select("nome").eq("id", id).maybeSingle();
   if (bandoPath) await supabase.storage.from("progetti-bandi").remove([bandoPath]);
   if (eventoId) await supabase.from("events").delete().eq("id", eventoId);
   await supabase.from("progetti_professori").delete().eq("id", id);
+  await registraAttivita("eliminato", "progetto", `Progetto "${progetto?.nome ?? ""}"`);
   revalidatePath("/dashboard/progetti");
+  revalidatePath("/dashboard/calendario");
+}
+
+export async function salvaValutazioneCriteri(eventoId: string, formData: FormData) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  const { data: criteri } = await supabase.from("criteri_qualita").select("id, testo").eq("attivo", true);
+  const { data: evento } = await supabase.from("events").select("titolo, quando").eq("id", eventoId).single();
+  const puntiPerClassificazione: Record<string, number> = { ok: 5, da_migliorare: 3, criticita: 1 };
+  const punteggi: number[] = [];
+
+  for (const c of criteri ?? []) {
+    const classificazione = (formData.get(`classificazione_${c.id}`) as string) || "ok";
+    punteggi.push(puntiPerClassificazione[classificazione] ?? 5);
+    const nota = formData.get(`nota_${c.id}`) as string;
+    const responsabileId = formData.get(`responsabile_${c.id}`) as string;
+    const scadenza = formData.get(`scadenza_${c.id}`) as string;
+
+    const { data: esistente } = await supabase
+      .from("quality_report_criteri")
+      .select("id, task_id")
+      .eq("evento_id", eventoId)
+      .eq("criterio_id", c.id)
+      .maybeSingle();
+
+    let taskId: string | null = esistente?.task_id ?? null;
+
+    if (classificazione !== "ok" && responsabileId) {
+      const { data: responsabile } = await supabase.from("profiles").select("reparto").eq("id", responsabileId).single();
+      const titoloTask = `${c.testo} — puntata "${evento?.titolo ?? ""}"`;
+      if (taskId) {
+        await supabase.from("tasks").update({
+          titolo: titoloTask, descrizione: nota || null, assegnato_a: responsabileId,
+          puntata_data: scadenza || null, reparto: responsabile?.reparto,
+        }).eq("id", taskId);
+      } else {
+        const { data: nuovaTask } = await supabase.from("tasks").insert({
+          titolo: titoloTask, descrizione: nota || null, assegnato_a: responsabileId,
+          puntata_data: scadenza || null, reparto: responsabile?.reparto, stato: "da_fare",
+        }).select("id").single();
+        taskId = nuovaTask?.id ?? null;
+        if (responsabileId) {
+          await supabase.from("avvisi").insert({
+            destinatario_id: responsabileId,
+            testo: `Azione richiesta dalla Qualità: "${c.testo}" (${evento?.titolo ?? "puntata"})`,
+            creato_da: user?.id,
+          });
+        }
+      }
+    } else if (taskId) {
+      // Tornato "OK" o senza responsabile: la task collegata non serve più.
+      await supabase.from("tasks").delete().eq("id", taskId);
+      taskId = null;
+    }
+
+    await supabase.from("quality_report_criteri").upsert(
+      {
+        evento_id: eventoId, criterio_id: c.id, classificazione,
+        nota: nota || null, responsabile_id: responsabileId || null,
+        scadenza: scadenza || null, task_id: taskId, aggiornato_il: new Date().toISOString(),
+      },
+      { onConflict: "evento_id,criterio_id" }
+    );
+  }
+
+  if (punteggi.length > 0) {
+    const votoMedio = Math.round((punteggi.reduce((a, b) => a + b, 0) / punteggi.length) * 10) / 10;
+    await supabase.from("quality_reports").upsert(
+      {
+        evento_id: eventoId,
+        puntata_titolo: evento?.titolo ?? "",
+        voto: votoMedio,
+        creato_da: user?.id,
+        stato: "in_revisione",
+      },
+      { onConflict: "evento_id" }
+    );
+  }
+
+  revalidatePath("/dashboard/qualita");
+  revalidatePath("/dashboard/resoconti");
+  revalidatePath("/dashboard/task");
+  revalidatePath("/dashboard/analisi-puntate");
+  revalidatePath("/dashboard");
+}
+
+export async function aggiungiCriterioQualita(formData: FormData) {
+  const supabase = createClient();
+  const testo = formData.get("testo") as string;
+  const { data: max } = await supabase.from("criteri_qualita").select("ordine").order("ordine", { ascending: false }).limit(1).single();
+  await supabase.from("criteri_qualita").insert({ testo, ordine: (max?.ordine ?? 0) + 1 });
+  revalidatePath("/dashboard/criteri-qualita");
+}
+
+export async function rimuoviCriterioQualita(id: string) {
+  const supabase = createClient();
+  await supabase.from("criteri_qualita").update({ attivo: false }).eq("id", id);
+  revalidatePath("/dashboard/criteri-qualita");
+}
+
+export async function svuotaStorico() {
+  const supabase = createClient();
+  await supabase.from("registro_attivita").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+  revalidatePath("/dashboard/storico");
+}
+
+export async function creaFormat(formData: FormData) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const { data: profile } = await supabase.from("profiles").select("reparto, ruolo").eq("id", user!.id).single();
+
+  const nome = formData.get("nome") as string;
+  const membri = formData.getAll("membri") as string[];
+  const reparto = (formData.get("reparto") as string) || profile?.reparto;
+
+  await supabase.from("format_diretta").insert({ nome, membri, reparto, creato_da: user?.id });
+  revalidatePath("/dashboard/membri-reparto");
+  revalidatePath("/dashboard/calendario");
+}
+
+export async function eliminaFormat(id: string) {
+  const supabase = createClient();
+  await supabase.from("format_diretta").delete().eq("id", id);
+  revalidatePath("/dashboard/membri-reparto");
   revalidatePath("/dashboard/calendario");
 }
