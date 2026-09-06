@@ -1,0 +1,10 @@
+/* Questo file fa in modo che Vercel esegua un cron job ogni primo giorno del mese a mezzanotte per rinnovare il token di accesso di Instagram API. */
+
+{
+  "crons": [
+    {
+      "path": "/api/refresh-token",
+      "schedule": "0 0 1 * *"
+    }
+  ]
+}
