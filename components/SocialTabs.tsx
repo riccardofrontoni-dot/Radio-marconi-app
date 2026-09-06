@@ -65,7 +65,7 @@ export default function SocialTabs({ instaLive, history }: SocialProps) {
       {activeTab === "instagram" && (
         <div>
           {/* 1. FOLLOWER IN TEMPO REALE */}
-          <div style={{ display: "flex", justifyContent: "center", marginBottom: 24 }}>
+          <div style={{ display: "flex",  justifyContent: "center", marginBottom: 24 }}>
             <div
               className="card"
               style={{
@@ -225,7 +225,7 @@ export default function SocialTabs({ instaLive, history }: SocialProps) {
             backdropFilter: "blur(4px)",
             display: "flex",
             alignItems: "center",
-            justify: "center",
+            justifyContent: "center",
             zIndex: 999,
           }}
           onClick={() => setSelectedMedia(null)}
