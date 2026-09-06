@@ -77,6 +77,7 @@ export default async function ProgettoWorkspacePage({ params }: { params: { id: 
       obiettivi={obiettivi ?? []}
       eventi={eventi ?? []}
       partecipanti={partecipanti}
+      membriTutti={membriTutti ?? []}
       andamento={andamento}
       puoGestire={puoGestire}
       mioId={profile.id}

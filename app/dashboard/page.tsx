@@ -33,6 +33,22 @@ export default async function HomePage() {
   const daCompletare = (tasks ?? []).filter((t) => !t.completato).length;
   const isCapo = profile.ruolo === "capo";
 
+  const { data: progettiTutti } = await supabase
+    .from("progetti_professori")
+    .select("id, nome, stato, reparti_coinvolti, persone_coinvolte")
+    .eq("stato", "in_corso");
+  const mieiProgetti = (progettiTutti ?? []).filter(
+    (p) => (p.persone_coinvolte ?? []).includes(profile.id) || (p.reparti_coinvolti ?? []).includes(profile.reparto ?? "__nessuno__")
+  );
+
+  const { data: eventiRadTutti } = await supabase
+    .from("eventi_rad")
+    .select("id, nome, stato, reparti_coinvolti, persone_coinvolte")
+    .eq("stato", "in_corso");
+  const mieiEventiRad = (eventiRadTutti ?? []).filter(
+    (e) => (e.persone_coinvolte ?? []).includes(profile.id) || (e.reparti_coinvolti ?? []).includes(profile.reparto ?? "__nessuno__")
+  );
+
   return (
     <div>
       <div style={{ marginBottom: 28 }}>
@@ -44,6 +60,36 @@ export default async function HomePage() {
 
       <AvvisiBanner destinatarioId={profile.id} />
       {profile.ruolo === "rad" && <ResocontiInAttesaBanner />}
+
+      {(mieiProgetti.length > 0 || mieiEventiRad.length > 0) && (
+        <div style={{ marginBottom: 28 }}>
+          <div className="section-label" style={{ marginTop: 0 }}>I tuoi progetti ed eventi</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {mieiProgetti.map((p) => (
+              <a
+                key={`progetto-${p.id}`}
+                href={`/dashboard/progetti/${p.id}`}
+                className="card"
+                style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 18px", textDecoration: "none", color: "var(--dark)" }}
+              >
+                <span style={{ fontSize: 14, fontWeight: 600 }}>{p.nome}</span>
+                <span style={{ fontSize: 12, color: "var(--blue)", fontWeight: 600 }}>Apri →</span>
+              </a>
+            ))}
+            {mieiEventiRad.map((e) => (
+              <a
+                key={`evento-${e.id}`}
+                href={`/dashboard/eventi/${e.id}`}
+                className="card"
+                style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 18px", textDecoration: "none", color: "var(--dark)" }}
+              >
+                <span style={{ fontSize: 14, fontWeight: 600 }}>{e.nome}</span>
+                <span style={{ fontSize: 12, color: "var(--blue)", fontWeight: 600 }}>Apri →</span>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="grid-stack-mobile" style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12, marginBottom: 28 }}>
         <div className="card">

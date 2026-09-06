@@ -3,10 +3,10 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import {
-  impostaStatoProgetto, creaTaskProgetto, impostaStatoTask, deleteTask,
-  caricaMateriale, eliminaMateriale, salvaCompitoProgetto,
-  creaObiettivoProgetto, updateObiettivoProgettoManuale, eliminaObiettivoProgetto,
-  creaEventoProgetto, aggiornaProgetto,
+  impostaStatoEventoRad, creaTaskEventoRad, impostaStatoTask, deleteTask,
+  caricaMateriale, eliminaMateriale, salvaCompitoEventoRad,
+  creaObiettivoEventoRad, updateObiettivoEventoRadManuale, eliminaObiettivoEventoRad,
+  creaEventoNelCalendarioEventoRad, aggiornaEventoRad,
 } from "@/lib/actions";
 import { REPARTI, repartoColor, repartoLabel } from "@/lib/reparti";
 
@@ -26,10 +26,10 @@ function icona(tipo: string | null) {
   return "📄";
 }
 
-export default function ProgettoWorkspaceClient({
-  progetto, tasks, materiali, compiti, obiettivi, eventi, partecipanti, membriTutti, andamento, puoGestire, mioId,
+export default function EventoRadWorkspaceClient({
+  evento, tasks, materiali, compiti, obiettivi, eventiCalendario, partecipanti, membriTutti, andamento, puoGestire, mioId,
 }: {
-  progetto: any; tasks: any[]; materiali: any[]; compiti: any[]; obiettivi: any[]; eventi: any[];
+  evento: any; tasks: any[]; materiali: any[]; compiti: any[]; obiettivi: any[]; eventiCalendario: any[];
   partecipanti: any[]; membriTutti: any[]; andamento: number; puoGestire: boolean; mioId: string;
 }) {
   const [tab, setTab] = useState<"home" | "task" | "materiali" | "compiti" | "scadenze">("home");
@@ -47,22 +47,22 @@ export default function ProgettoWorkspaceClient({
     <div>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10, flexWrap: "wrap", marginBottom: 4 }}>
         <div>
-          <Link href="/dashboard/progetti" style={{ fontSize: 12, color: "var(--gray-text)" }}>← Tutti i progetti</Link>
-          <h2 style={{ fontSize: 22, marginTop: 4 }}>{progetto.nome}</h2>
+          <Link href="/dashboard/eventi" style={{ fontSize: 12, color: "var(--gray-text)" }}>← Tutti gli eventi</Link>
+          <h2 style={{ fontSize: 22, marginTop: 4 }}>{evento.nome}</h2>
         </div>
         {puoGestire ? (
           <select
-            value={progetto.stato}
-            onChange={(e) => startTransition(async () => { await impostaStatoProgetto(progetto.id, e.target.value); mostraToast("Stato aggiornato"); })}
-            style={{ fontSize: 12, fontWeight: 700, padding: "6px 12px", borderRadius: 999, border: "none", background: STATO_LABEL[progetto.stato].bg, color: STATO_LABEL[progetto.stato].fg }}
+            value={evento.stato}
+            onChange={(e) => startTransition(async () => { await impostaStatoEventoRad(evento.id, e.target.value); mostraToast("Stato aggiornato"); })}
+            style={{ fontSize: 12, fontWeight: 700, padding: "6px 12px", borderRadius: 999, border: "none", background: STATO_LABEL[evento.stato].bg, color: STATO_LABEL[evento.stato].fg }}
           >
             <option value="in_corso">In corso</option>
             <option value="completato">Completato</option>
             <option value="archiviato">Archiviato</option>
           </select>
         ) : (
-          <span style={{ fontSize: 12, fontWeight: 700, padding: "6px 12px", borderRadius: 999, background: STATO_LABEL[progetto.stato].bg, color: STATO_LABEL[progetto.stato].fg }}>
-            {STATO_LABEL[progetto.stato].label}
+          <span style={{ fontSize: 12, fontWeight: 700, padding: "6px 12px", borderRadius: 999, background: STATO_LABEL[evento.stato].bg, color: STATO_LABEL[evento.stato].fg }}>
+            {STATO_LABEL[evento.stato].label}
           </span>
         )}
       </div>
@@ -84,19 +84,19 @@ export default function ProgettoWorkspaceClient({
       </div>
 
       {tab === "home" && (
-        <TabHome progetto={progetto} andamento={andamento} eventi={eventi} membriTutti={membriTutti} puoGestire={puoGestire} onToast={mostraToast} />
+        <TabHome evento={evento} andamento={andamento} eventiCalendario={eventiCalendario} membriTutti={membriTutti} puoGestire={puoGestire} onToast={mostraToast} />
       )}
       {tab === "task" && (
-        <TabTask progettoId={progetto.id} tasks={tasks} partecipanti={partecipanti} puoGestire={puoGestire} nomePersona={nomePersona} onToast={mostraToast} />
+        <TabTask radEventoId={evento.id} tasks={tasks} partecipanti={partecipanti} puoGestire={puoGestire} nomePersona={nomePersona} onToast={mostraToast} />
       )}
       {tab === "materiali" && (
-        <TabMateriali progettoId={progetto.id} materiali={materiali} puoGestire={puoGestire} mioId={mioId} onToast={mostraToast} />
+        <TabMateriali radEventoId={evento.id} materiali={materiali} puoGestire={puoGestire} mioId={mioId} onToast={mostraToast} />
       )}
       {tab === "compiti" && (
-        <TabCompiti progettoId={progetto.id} partecipanti={partecipanti} compiti={compiti} puoGestire={puoGestire} onToast={mostraToast} />
+        <TabCompiti radEventoId={evento.id} partecipanti={partecipanti} compiti={compiti} puoGestire={puoGestire} onToast={mostraToast} />
       )}
       {tab === "scadenze" && (
-        <TabScadenze progettoId={progetto.id} obiettivi={obiettivi} andamento={andamento} puoGestire={puoGestire} onToast={mostraToast} />
+        <TabScadenze radEventoId={evento.id} obiettivi={obiettivi} andamento={andamento} puoGestire={puoGestire} onToast={mostraToast} />
       )}
 
       <div
@@ -117,18 +117,18 @@ export default function ProgettoWorkspaceClient({
 // ============================================================
 // HOME
 // ============================================================
-function TabHome({ progetto, andamento, eventi, membriTutti, puoGestire, onToast }: any) {
+function TabHome({ evento, andamento, eventiCalendario, membriTutti, puoGestire, onToast }: any) {
   const [isPending, startTransition] = useTransition();
   const [mostraForm, setMostraForm] = useState(false);
   const [mostraModifica, setMostraModifica] = useState(false);
-  const [repartiScelti, setRepartiScelti] = useState<string[]>(progetto.reparti_coinvolti ?? []);
-  const [personeScelte, setPersoneScelte] = useState<string[]>(progetto.persone_coinvolte ?? []);
+  const [repartiScelti, setRepartiScelti] = useState<string[]>(evento.reparti_coinvolti ?? []);
+  const [personeScelte, setPersoneScelte] = useState<string[]>(evento.persone_coinvolte ?? []);
 
   function salva(formData: FormData) {
     startTransition(async () => {
-      await creaEventoProgetto(progetto.id, formData);
+      await creaEventoNelCalendarioEventoRad(evento.id, formData);
       setMostraForm(false);
-      onToast("Scadenza aggiunta al calendario del progetto");
+      onToast("Scadenza aggiunta al calendario dell'evento");
     });
   }
 
@@ -142,9 +142,9 @@ function TabHome({ progetto, andamento, eventi, membriTutti, puoGestire, onToast
     repartiScelti.forEach((r) => formData.append("reparti_coinvolti", r));
     personeScelte.forEach((p) => formData.append("persone_coinvolte", p));
     startTransition(async () => {
-      await aggiornaProgetto(progetto.id, formData);
+      await aggiornaEventoRad(evento.id, formData);
       setMostraModifica(false);
-      onToast("Progetto aggiornato");
+      onToast("Evento aggiornato");
     });
   }
 
@@ -152,7 +152,7 @@ function TabHome({ progetto, andamento, eventi, membriTutti, puoGestire, onToast
 
   return (
     <div>
-      <div className="section-label" style={{ marginTop: 0 }}>Andamento del progetto</div>
+      <div className="section-label" style={{ marginTop: 0 }}>Andamento dell'evento</div>
       <div style={{ background: "var(--light-bg)", borderRadius: 16, padding: "20px 22px", marginBottom: 26, maxWidth: 480 }}>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
           <span style={{ fontSize: 12.5, fontWeight: 700 }}>Task completate</span>
@@ -164,10 +164,10 @@ function TabHome({ progetto, andamento, eventi, membriTutti, puoGestire, onToast
       </div>
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-        <div className="section-label" style={{ marginTop: 0, marginBottom: 0 }}>Scheda progetto</div>
+        <div className="section-label" style={{ marginTop: 0, marginBottom: 0 }}>Scheda evento</div>
         {puoGestire && (
           <button onClick={() => setMostraModifica(!mostraModifica)} className="btn-primary" style={{ fontSize: 11.5, padding: "6px 12px" }}>
-            {mostraModifica ? "Annulla" : "Modifica progetto"}
+            {mostraModifica ? "Annulla" : "Modifica evento"}
           </button>
         )}
       </div>
@@ -175,17 +175,17 @@ function TabHome({ progetto, andamento, eventi, membriTutti, puoGestire, onToast
       {mostraModifica ? (
         <form action={salvaModifica} style={{ background: "var(--light-bg)", borderRadius: 14, padding: 18, display: "grid", gap: 12, marginBottom: 26, maxWidth: 600 }}>
           <div>
-            <label style={labelStyle}>Nome progetto</label>
-            <input name="nome" type="text" required defaultValue={progetto.nome} style={inputStyle} />
+            <label style={labelStyle}>Nome evento</label>
+            <input name="nome" type="text" required defaultValue={evento.nome} style={inputStyle} />
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <div>
               <label style={labelStyle}>Partenza</label>
-              <input name="data_inizio" type="date" defaultValue={progetto.data_inizio ?? ""} style={inputStyle} />
+              <input name="data_inizio" type="date" defaultValue={evento.data_inizio ?? ""} style={inputStyle} />
             </div>
             <div>
               <label style={labelStyle}>Scadenza</label>
-              <input name="data_scadenza" type="date" defaultValue={progetto.data_scadenza ?? ""} style={inputStyle} />
+              <input name="data_scadenza" type="date" defaultValue={evento.data_scadenza ?? ""} style={inputStyle} />
             </div>
           </div>
           <div>
@@ -226,43 +226,38 @@ function TabHome({ progetto, andamento, eventi, membriTutti, puoGestire, onToast
           </div>
           <div>
             <label style={labelStyle}>Descrizione</label>
-            <textarea name="descrizione" defaultValue={progetto.descrizione ?? ""} style={{ ...inputStyle, minHeight: 70 }} />
+            <textarea name="descrizione" defaultValue={evento.descrizione ?? ""} style={{ ...inputStyle, minHeight: 70 }} />
           </div>
           <div>
-            <label style={labelStyle}>Bando (PDF) — carica solo se vuoi sostituirlo</label>
-            <input name="bando" type="file" accept="application/pdf" style={{ fontSize: 12.5 }} />
-          </div>
-          <div>
-            <label style={labelStyle}>Assegnato da</label>
-            <input name="assegnato_da" type="text" defaultValue={progetto.assegnato_da ?? ""} style={inputStyle} />
+            <label style={labelStyle}>Documento (PDF) — carica solo se vuoi sostituirlo</label>
+            <input name="documento" type="file" accept="application/pdf" style={{ fontSize: 12.5 }} />
           </div>
           <button type="submit" disabled={isPending} className="btn-primary">{isPending ? "Salvataggio…" : "Salva modifiche"}</button>
         </form>
       ) : (
         <div className="card" style={{ padding: 20, marginBottom: 26, maxWidth: 620 }}>
           <div style={{ display: "flex", gap: 20, flexWrap: "wrap", marginBottom: 12, fontSize: 12.5 }}>
-            <div><b>Partenza:</b> {progetto.data_inizio ? new Date(progetto.data_inizio).toLocaleDateString("it-IT") : "—"}</div>
-            <div><b>Scadenza:</b> {progetto.data_scadenza ? new Date(progetto.data_scadenza).toLocaleDateString("it-IT") : "—"}</div>
-            <div><b>Assegnato da:</b> {progetto.assegnato_da || "—"}</div>
+            <div><b>Partenza:</b> {evento.data_inizio ? new Date(evento.data_inizio).toLocaleDateString("it-IT") : "—"}</div>
+            <div><b>Scadenza:</b> {evento.data_scadenza ? new Date(evento.data_scadenza).toLocaleDateString("it-IT") : "—"}</div>
           </div>
-          {progetto.reparti_coinvolti?.length > 0 && (
+          {evento.reparti_coinvolti?.length > 0 && (
             <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 10 }}>
-              {progetto.reparti_coinvolti.map((r: string) => (
+              {evento.reparti_coinvolti.map((r: string) => (
                 <span key={r} style={{ fontSize: 10.5, fontWeight: 700, color: "#fff", background: repartoColor(r), borderRadius: 999, padding: "3px 9px" }}>{repartoLabel(r)}</span>
               ))}
             </div>
           )}
-          {progetto.descrizione && <p style={{ fontSize: 13, margin: "8px 0" }}>{progetto.descrizione}</p>}
-          {progetto.bandoUrl && (
-            <a href={progetto.bandoUrl} target="_blank" rel="noreferrer" className="btn-primary" style={{ fontSize: 12, padding: "7px 14px", textDecoration: "none", display: "inline-block", marginTop: 6 }}>
-              Scarica il bando
+          {evento.descrizione && <p style={{ fontSize: 13, margin: "8px 0" }}>{evento.descrizione}</p>}
+          {evento.documentoUrl && (
+            <a href={evento.documentoUrl} target="_blank" rel="noreferrer" className="btn-primary" style={{ fontSize: 12, padding: "7px 14px", textDecoration: "none", display: "inline-block", marginTop: 6 }}>
+              Scarica il documento
             </a>
           )}
         </div>
       )}
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-        <div className="section-label" style={{ marginTop: 0, marginBottom: 0 }}>Calendario del progetto</div>
+        <div className="section-label" style={{ marginTop: 0, marginBottom: 0 }}>Calendario dell'evento</div>
         {puoGestire && (
           <button onClick={() => setMostraForm(!mostraForm)} className="btn-primary" style={{ fontSize: 11.5, padding: "6px 12px" }}>
             {mostraForm ? "Annulla" : "+ Aggiungi scadenza"}
@@ -278,9 +273,9 @@ function TabHome({ progetto, andamento, eventi, membriTutti, puoGestire, onToast
         </form>
       )}
 
-      {eventi.length === 0 && <p className="placeholder-note" style={{ marginTop: 0 }}>Nessun appuntamento sul calendario di questo progetto ancora.</p>}
+      {eventiCalendario.length === 0 && <p className="placeholder-note" style={{ marginTop: 0 }}>Nessun appuntamento sul calendario di questo evento ancora.</p>}
       <div style={{ display: "flex", flexDirection: "column", gap: 6, maxWidth: 480 }}>
-        {eventi.map((e: any) => (
+        {eventiCalendario.map((e: any) => (
           <div key={e.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", border: "1px solid var(--border)", borderRadius: 10 }}>
             <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--blue)", flexShrink: 0 }} />
             <span style={{ fontSize: 13, fontWeight: 600, flex: 1 }}>{e.titolo}</span>
@@ -295,13 +290,13 @@ function TabHome({ progetto, andamento, eventi, membriTutti, puoGestire, onToast
 // ============================================================
 // TASK
 // ============================================================
-function TabTask({ progettoId, tasks, partecipanti, puoGestire, nomePersona, onToast }: any) {
+function TabTask({ radEventoId, tasks, partecipanti, puoGestire, nomePersona, onToast }: any) {
   const [isPending, startTransition] = useTransition();
   const [mostraForm, setMostraForm] = useState(false);
 
   function salva(formData: FormData) {
     startTransition(async () => {
-      await creaTaskProgetto(progettoId, formData);
+      await creaTaskEventoRad(radEventoId, formData);
       setMostraForm(false);
       onToast("Task creata");
     });
@@ -335,7 +330,7 @@ function TabTask({ progettoId, tasks, partecipanti, puoGestire, nomePersona, onT
         </div>
       )}
 
-      {tasks.length === 0 && <p className="placeholder-note" style={{ marginTop: 0 }}>Nessuna task per questo progetto ancora.</p>}
+      {tasks.length === 0 && <p className="placeholder-note" style={{ marginTop: 0 }}>Nessuna task per questo evento ancora.</p>}
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {tasks.map((t: any) => (
           <div key={t.id} className="card" style={{ padding: "12px 16px", display: "flex", alignItems: "center", gap: 12 }}>
@@ -360,15 +355,15 @@ function TabTask({ progettoId, tasks, partecipanti, puoGestire, nomePersona, onT
 // ============================================================
 // MATERIALI
 // ============================================================
-function TabMateriali({ progettoId, materiali, puoGestire, mioId, onToast }: any) {
+function TabMateriali({ radEventoId, materiali, puoGestire, mioId, onToast }: any) {
   const [isPending, startTransition] = useTransition();
   const [mostraForm, setMostraForm] = useState(false);
   const [nome, setNome] = useState("");
 
   function carica(formData: FormData) {
     startTransition(async () => {
-      formData.set("categoria", "progetto");
-      formData.set("progetto_id", progettoId);
+      formData.set("categoria", "evento_rad");
+      formData.set("rad_evento_id", radEventoId);
       formData.set("nome", nome);
       await caricaMateriale(formData);
       setMostraForm(false);
@@ -398,7 +393,7 @@ function TabMateriali({ progettoId, materiali, puoGestire, mioId, onToast }: any
         </div>
       )}
 
-      {materiali.length === 0 && <p className="placeholder-note" style={{ marginTop: 0 }}>Nessun materiale caricato per questo progetto ancora.</p>}
+      {materiali.length === 0 && <p className="placeholder-note" style={{ marginTop: 0 }}>Nessun materiale caricato per questo evento ancora.</p>}
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {materiali.map((m: any) => (
           <div key={m.id} className="card" style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px" }}>
@@ -421,7 +416,7 @@ function TabMateriali({ progettoId, materiali, puoGestire, mioId, onToast }: any
 // ============================================================
 // DIVISIONE COMPITI
 // ============================================================
-function TabCompiti({ progettoId, partecipanti, compiti, puoGestire, onToast }: any) {
+function TabCompiti({ radEventoId, partecipanti, compiti, puoGestire, onToast }: any) {
   const [isPending, startTransition] = useTransition();
   const [valori, setValori] = useState<Record<string, string>>(
     Object.fromEntries(partecipanti.map((p: any) => [p.id, compiti.find((c: any) => c.persona_id === p.id)?.compito ?? ""]))
@@ -429,7 +424,7 @@ function TabCompiti({ progettoId, partecipanti, compiti, puoGestire, onToast }: 
 
   function salva(personaId: string) {
     startTransition(async () => {
-      await salvaCompitoProgetto(progettoId, personaId, valori[personaId] ?? "");
+      await salvaCompitoEventoRad(radEventoId, personaId, valori[personaId] ?? "");
       onToast("Compito salvato");
     });
   }
@@ -437,7 +432,7 @@ function TabCompiti({ progettoId, partecipanti, compiti, puoGestire, onToast }: 
   return (
     <div>
       <p style={{ fontSize: 13, color: "var(--gray-text)", marginBottom: 20 }}>
-        Chi fa cosa in questo progetto.
+        Chi fa cosa in questo evento.
       </p>
       {partecipanti.length === 0 && <p className="placeholder-note" style={{ marginTop: 0 }}>Nessun partecipante ancora.</p>}
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -472,22 +467,22 @@ function TabCompiti({ progettoId, partecipanti, compiti, puoGestire, onToast }: 
 // ============================================================
 // SCADENZE
 // ============================================================
-function TabScadenze({ progettoId, obiettivi, andamento, puoGestire, onToast }: any) {
+function TabScadenze({ radEventoId, obiettivi, andamento, puoGestire, onToast }: any) {
   const [isPending, startTransition] = useTransition();
   const [mostraForm, setMostraForm] = useState(false);
 
   function salva(formData: FormData) {
     startTransition(async () => {
-      await creaObiettivoProgetto(progettoId, formData);
+      await creaObiettivoEventoRad(radEventoId, formData);
       setMostraForm(false);
       onToast("Scadenza aggiunta");
     });
   }
   function elimina(id: string) {
-    startTransition(async () => { await eliminaObiettivoProgetto(id, progettoId); onToast("Scadenza eliminata"); });
+    startTransition(async () => { await eliminaObiettivoEventoRad(id, radEventoId); onToast("Scadenza eliminata"); });
   }
   function slider(id: string, valore: number) {
-    startTransition(async () => { await updateObiettivoProgettoManuale(id, valore); });
+    startTransition(async () => { await updateObiettivoEventoRadManuale(id, valore); });
   }
 
   return (
@@ -503,7 +498,7 @@ function TabScadenze({ progettoId, obiettivi, andamento, puoGestire, onToast }: 
               <textarea name="descrizione" placeholder="Descrizione (facoltativa)" style={{ ...inputStyle, minHeight: 50 }} />
               <input name="scadenza" type="date" style={inputStyle} />
               <select name="tipo" style={inputStyle} defaultValue="task">
-                <option value="task">Automatico — % task completate del progetto</option>
+                <option value="task">Automatico — % task completate dell'evento</option>
                 <option value="manuale">Manuale — imposti tu la percentuale</option>
               </select>
               <button type="submit" className="btn-primary">Salva</button>
@@ -539,7 +534,7 @@ function TabScadenze({ progettoId, obiettivi, andamento, puoGestire, onToast }: 
               )}
               {o.scadenza && (
                 <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
-                  <span style={{ fontSize: 10.5, color: "var(--gray-text)" }}>{o.tipo === "task" ? "Automatico — task del progetto" : "Manuale"}</span>
+                  <span style={{ fontSize: 10.5, color: "var(--gray-text)" }}>{o.tipo === "task" ? "Automatico — task dell'evento" : "Manuale"}</span>
                   <span style={{ fontSize: 11, fontWeight: 700, color: giorni !== null && giorni < 0 ? "#DC2626" : giorni !== null && giorni <= 3 ? "#D97706" : "var(--gray-text)" }}>
                     {giorni === null ? "" : giorni < 0 ? `Scaduta da ${Math.abs(giorni)} giorni` : giorni === 0 ? "Scade oggi" : `Tra ${giorni} giorni`}
                   </span>

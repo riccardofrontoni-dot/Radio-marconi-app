@@ -164,7 +164,7 @@ export async function createTask(formData: FormData) {
 
 export async function deleteTask(taskId: string) {
   const supabase = createClient();
-  const { data: task } = await supabase.from("tasks").select("titolo, reparto, progetto_id").eq("id", taskId).maybeSingle();
+  const { data: task } = await supabase.from("tasks").select("titolo, reparto, progetto_id, rad_evento_id").eq("id", taskId).maybeSingle();
   await supabase.from("tasks").delete().eq("id", taskId);
   await registraAttivita("eliminato", "task", `Task "${task?.titolo ?? ""}"`, task?.reparto, task?.progetto_id);
   revalidatePath("/dashboard/gestione");
@@ -172,6 +172,7 @@ export async function deleteTask(taskId: string) {
   revalidatePath("/dashboard/task");
   revalidatePath("/dashboard/membri-reparto");
   if (task?.progetto_id) revalidatePath(`/dashboard/progetti/${task.progetto_id}`);
+  if (task?.rad_evento_id) revalidatePath(`/dashboard/eventi/${task.rad_evento_id}`);
 }
 
 export async function assignProfile(profileId: string, reparto: string, ruolo: string) {
@@ -550,6 +551,7 @@ export async function caricaMateriale(formData: FormData) {
   const reparto = formData.get("reparto") as string;
   const eventoId = formData.get("evento_id") as string;
   const progettoId = formData.get("progetto_id") as string;
+  const radEventoId = formData.get("rad_evento_id") as string;
 
   if (!file || file.size === 0) return;
 
@@ -569,10 +571,12 @@ export async function caricaMateriale(formData: FormData) {
     reparto: categoria === "tutorial" ? (reparto || null) : null,
     evento_id: categoria === "formazione" ? (eventoId || null) : null,
     progetto_id: progettoId || null,
+    rad_evento_id: radEventoId || null,
     caricato_da: user?.id,
   });
 
   if (progettoId) revalidatePath(`/dashboard/progetti/${progettoId}`);
+  if (radEventoId) revalidatePath(`/dashboard/eventi/${radEventoId}`);
   revalidatePath("/dashboard/materiali");
   revalidatePath("/dashboard/calendario");
 }
@@ -865,5 +869,259 @@ export async function creaEventoProgetto(progettoId: string, formData: FormData)
     progetto_id: progettoId,
   });
   revalidatePath(`/dashboard/progetti/${progettoId}`);
+  revalidatePath("/dashboard/calendario");
+}
+
+export async function aggiornaProgetto(id: string, formData: FormData) {
+  const supabase = createClient();
+
+  const nome = formData.get("nome") as string;
+  const descrizione = formData.get("descrizione") as string;
+  const dataInizio = formData.get("data_inizio") as string;
+  const dataScadenza = formData.get("data_scadenza") as string;
+  const repartiCoinvolti = formData.getAll("reparti_coinvolti") as string[];
+  const personeCoinvolte = formData.getAll("persone_coinvolte") as string[];
+  const assegnatoDa = formData.get("assegnato_da") as string;
+  const file = formData.get("bando") as File | null;
+
+  const { data: progettoAttuale } = await supabase.from("progetti_professori").select("evento_id, bando_path").eq("id", id).single();
+
+  let bandoPath = progettoAttuale?.bando_path ?? null;
+  if (file && file.size > 0) {
+    if (bandoPath) await supabase.storage.from("progetti-bandi").remove([bandoPath]);
+    const { data: { user } } = await supabase.auth.getUser();
+    const percorso = `${user?.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.pdf`;
+    const { error } = await supabase.storage.from("progetti-bandi").upload(percorso, file);
+    if (!error) bandoPath = percorso;
+  }
+
+  await supabase.from("progetti_professori").update({
+    nome,
+    descrizione: descrizione || null,
+    data_inizio: dataInizio || null,
+    data_scadenza: dataScadenza || null,
+    reparti_coinvolti: repartiCoinvolti,
+    persone_coinvolte: personeCoinvolte,
+    assegnato_da: assegnatoDa || null,
+    bando_path: bandoPath,
+  }).eq("id", id);
+
+  if (progettoAttuale?.evento_id && dataInizio) {
+    await supabase.from("events").update({
+      titolo: `Progetto: ${nome}`,
+      quando: new Date(`${dataInizio}T09:00:00`).toISOString(),
+      fine: dataScadenza ? new Date(`${dataScadenza}T18:00:00`).toISOString() : null,
+      membri: personeCoinvolte,
+    }).eq("id", progettoAttuale.evento_id);
+  }
+
+  revalidatePath(`/dashboard/progetti/${id}`);
+  revalidatePath("/dashboard/progetti");
+  revalidatePath("/dashboard/calendario");
+}
+
+// ============================================================
+// EVENTI RAD (stessa struttura dei Progetti, ma li crea il RAD)
+// ============================================================
+
+export async function creaEventoRad(formData: FormData) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  const nome = formData.get("nome") as string;
+  const descrizione = formData.get("descrizione") as string;
+  const dataInizio = formData.get("data_inizio") as string;
+  const dataScadenza = formData.get("data_scadenza") as string;
+  const repartiCoinvolti = formData.getAll("reparti_coinvolti") as string[];
+  const personeCoinvolte = formData.getAll("persone_coinvolte") as string[];
+  const file = formData.get("documento") as File | null;
+
+  let eventoCalendarioId: string | null = null;
+  if (dataInizio) {
+    const { data: evento } = await supabase
+      .from("events")
+      .insert({
+        titolo: `Evento: ${nome}`,
+        quando: new Date(`${dataInizio}T09:00:00`).toISOString(),
+        fine: dataScadenza ? new Date(`${dataScadenza}T18:00:00`).toISOString() : null,
+        tipo: "altro",
+        membri: personeCoinvolte,
+      })
+      .select("id")
+      .single();
+    eventoCalendarioId = evento?.id ?? null;
+  }
+
+  let documentoPath: string | null = null;
+  if (file && file.size > 0) {
+    const percorso = `${user?.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.pdf`;
+    const { error } = await supabase.storage.from("eventi-documenti").upload(percorso, file);
+    if (!error) documentoPath = percorso;
+  }
+
+  const { data: nuovoEvento } = await supabase.from("eventi_rad").insert({
+    nome,
+    descrizione: descrizione || null,
+    data_inizio: dataInizio || null,
+    data_scadenza: dataScadenza || null,
+    reparti_coinvolti: repartiCoinvolti,
+    persone_coinvolte: personeCoinvolte,
+    documento_path: documentoPath,
+    evento_calendario_id: eventoCalendarioId,
+    creato_da: user?.id,
+  }).select("id").single();
+
+  await registraAttivita("creato", "evento_rad", `Evento "${nome}"`, null, null);
+
+  revalidatePath("/dashboard/eventi");
+  revalidatePath("/dashboard/calendario");
+  return nuovoEvento?.id;
+}
+
+export async function aggiornaEventoRad(id: string, formData: FormData) {
+  const supabase = createClient();
+
+  const nome = formData.get("nome") as string;
+  const descrizione = formData.get("descrizione") as string;
+  const dataInizio = formData.get("data_inizio") as string;
+  const dataScadenza = formData.get("data_scadenza") as string;
+  const repartiCoinvolti = formData.getAll("reparti_coinvolti") as string[];
+  const personeCoinvolte = formData.getAll("persone_coinvolte") as string[];
+  const file = formData.get("documento") as File | null;
+
+  const { data: attuale } = await supabase.from("eventi_rad").select("evento_calendario_id, documento_path").eq("id", id).single();
+
+  let documentoPath = attuale?.documento_path ?? null;
+  if (file && file.size > 0) {
+    if (documentoPath) await supabase.storage.from("eventi-documenti").remove([documentoPath]);
+    const { data: { user } } = await supabase.auth.getUser();
+    const percorso = `${user?.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.pdf`;
+    const { error } = await supabase.storage.from("eventi-documenti").upload(percorso, file);
+    if (!error) documentoPath = percorso;
+  }
+
+  await supabase.from("eventi_rad").update({
+    nome,
+    descrizione: descrizione || null,
+    data_inizio: dataInizio || null,
+    data_scadenza: dataScadenza || null,
+    reparti_coinvolti: repartiCoinvolti,
+    persone_coinvolte: personeCoinvolte,
+    documento_path: documentoPath,
+  }).eq("id", id);
+
+  if (attuale?.evento_calendario_id && dataInizio) {
+    await supabase.from("events").update({
+      titolo: `Evento: ${nome}`,
+      quando: new Date(`${dataInizio}T09:00:00`).toISOString(),
+      fine: dataScadenza ? new Date(`${dataScadenza}T18:00:00`).toISOString() : null,
+      membri: personeCoinvolte,
+    }).eq("id", attuale.evento_calendario_id);
+  }
+
+  revalidatePath(`/dashboard/eventi/${id}`);
+  revalidatePath("/dashboard/eventi");
+  revalidatePath("/dashboard/calendario");
+}
+
+export async function eliminaEventoRad(id: string, documentoPath: string | null, eventoCalendarioId: string | null) {
+  const supabase = createClient();
+  const { data: er } = await supabase.from("eventi_rad").select("nome").eq("id", id).maybeSingle();
+  if (documentoPath) await supabase.storage.from("eventi-documenti").remove([documentoPath]);
+  if (eventoCalendarioId) await supabase.from("events").delete().eq("id", eventoCalendarioId);
+  await supabase.from("eventi_rad").delete().eq("id", id);
+  await registraAttivita("eliminato", "evento_rad", `Evento "${er?.nome ?? ""}"`, null, null);
+  revalidatePath("/dashboard/eventi");
+  revalidatePath("/dashboard/calendario");
+}
+
+export async function impostaStatoEventoRad(id: string, stato: string) {
+  const supabase = createClient();
+  await supabase.from("eventi_rad").update({ stato }).eq("id", id);
+  revalidatePath(`/dashboard/eventi/${id}`);
+  revalidatePath("/dashboard/eventi");
+}
+
+export async function creaTaskEventoRad(radEventoId: string, formData: FormData) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  const titolo = formData.get("titolo") as string;
+  const descrizione = formData.get("descrizione") as string;
+  const assegnatoA = formData.get("assegnato_a") as string;
+  const scadenza = formData.get("scadenza") as string;
+
+  let reparto: string | null = null;
+  if (assegnatoA) {
+    const { data: p } = await supabase.from("profiles").select("reparto").eq("id", assegnatoA).single();
+    reparto = p?.reparto ?? null;
+  }
+
+  await supabase.from("tasks").insert({
+    titolo,
+    descrizione: descrizione || null,
+    assegnato_a: assegnatoA || null,
+    puntata_data: scadenza || null,
+    reparto,
+    rad_evento_id: radEventoId,
+    stato: "da_fare",
+  });
+
+  if (assegnatoA) {
+    await supabase.from("avvisi").insert({
+      destinatario_id: assegnatoA,
+      testo: `Nuova task per l'evento: "${titolo}"`,
+      creato_da: user?.id,
+    });
+  }
+  await registraAttivita("creato", "task", `Task evento "${titolo}"`, reparto);
+
+  revalidatePath(`/dashboard/eventi/${radEventoId}`);
+}
+
+export async function salvaCompitoEventoRad(radEventoId: string, personaId: string, compito: string) {
+  const supabase = createClient();
+  await supabase.from("evento_rad_compiti").upsert(
+    { rad_evento_id: radEventoId, persona_id: personaId, compito, aggiornato_il: new Date().toISOString() },
+    { onConflict: "rad_evento_id,persona_id" }
+  );
+  revalidatePath(`/dashboard/eventi/${radEventoId}`);
+}
+
+export async function creaObiettivoEventoRad(radEventoId: string, formData: FormData) {
+  const supabase = createClient();
+  await supabase.from("evento_rad_obiettivi").insert({
+    rad_evento_id: radEventoId,
+    titolo: formData.get("titolo") as string,
+    descrizione: (formData.get("descrizione") as string) || null,
+    scadenza: (formData.get("scadenza") as string) || null,
+    tipo: (formData.get("tipo") as string) || "task",
+  });
+  revalidatePath(`/dashboard/eventi/${radEventoId}`);
+}
+
+export async function updateObiettivoEventoRadManuale(id: string, progresso: number) {
+  const supabase = createClient();
+  await supabase.from("evento_rad_obiettivi").update({ progresso_manuale: progresso }).eq("id", id);
+}
+
+export async function eliminaObiettivoEventoRad(id: string, radEventoId: string) {
+  const supabase = createClient();
+  await supabase.from("evento_rad_obiettivi").delete().eq("id", id);
+  revalidatePath(`/dashboard/eventi/${radEventoId}`);
+}
+
+export async function creaEventoNelCalendarioEventoRad(radEventoId: string, formData: FormData) {
+  const supabase = createClient();
+  const titolo = formData.get("titolo") as string;
+  const data = formData.get("data") as string;
+  await supabase.from("events").insert({
+    titolo,
+    quando: new Date(`${data}T09:00:00`).toISOString(),
+    tipo: "altro",
+    membri: [],
+    rad_evento_id: radEventoId,
+  });
+  revalidatePath(`/dashboard/eventi/${radEventoId}`);
   revalidatePath("/dashboard/calendario");
 }

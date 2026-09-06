@@ -199,6 +199,8 @@ export default function Sidebar({
           {!inAnalisi && (
             <>
               <NavItem href="/dashboard/admin" pathname={pathname}>Nuovi iscritti</NavItem>
+              <NavItem href="/dashboard/progetti" pathname={pathname}>Progetti</NavItem>
+              <NavItem href="/dashboard/eventi" pathname={pathname}>Eventi</NavItem>
               <NavItem href="/dashboard/membri" pathname={pathname}>Membri</NavItem>
               <NavItem href="/dashboard/criteri-qualita" pathname={pathname}>Criteri qualità</NavItem>
 
