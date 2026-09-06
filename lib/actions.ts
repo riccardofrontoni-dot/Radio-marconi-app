@@ -3,10 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
-async function registraAttivita(azione: "creato" | "eliminato", tipo: string, descrizione: string, reparto?: string | null) {
+async function registraAttivita(azione: "creato" | "eliminato", tipo: string, descrizione: string, reparto?: string | null, progettoId?: string | null) {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  await supabase.from("registro_attivita").insert({ azione, tipo, descrizione, reparto: reparto ?? null, eseguito_da: user?.id });
+  await supabase.from("registro_attivita").insert({ azione, tipo, descrizione, reparto: reparto ?? null, progetto_id: progettoId ?? null, eseguito_da: user?.id });
 }
 
 export async function createObiettivo(formData: FormData) {
@@ -164,13 +164,14 @@ export async function createTask(formData: FormData) {
 
 export async function deleteTask(taskId: string) {
   const supabase = createClient();
-  const { data: task } = await supabase.from("tasks").select("titolo, reparto").eq("id", taskId).maybeSingle();
+  const { data: task } = await supabase.from("tasks").select("titolo, reparto, progetto_id").eq("id", taskId).maybeSingle();
   await supabase.from("tasks").delete().eq("id", taskId);
-  await registraAttivita("eliminato", "task", `Task "${task?.titolo ?? ""}"`, task?.reparto);
+  await registraAttivita("eliminato", "task", `Task "${task?.titolo ?? ""}"`, task?.reparto, task?.progetto_id);
   revalidatePath("/dashboard/gestione");
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/task");
   revalidatePath("/dashboard/membri-reparto");
+  if (task?.progetto_id) revalidatePath(`/dashboard/progetti/${task.progetto_id}`);
 }
 
 export async function assignProfile(profileId: string, reparto: string, ruolo: string) {
@@ -548,6 +549,7 @@ export async function caricaMateriale(formData: FormData) {
   const categoria = (formData.get("categoria") as string) || "guida";
   const reparto = formData.get("reparto") as string;
   const eventoId = formData.get("evento_id") as string;
+  const progettoId = formData.get("progetto_id") as string;
 
   if (!file || file.size === 0) return;
 
@@ -566,9 +568,11 @@ export async function caricaMateriale(formData: FormData) {
     categoria,
     reparto: categoria === "tutorial" ? (reparto || null) : null,
     evento_id: categoria === "formazione" ? (eventoId || null) : null,
+    progetto_id: progettoId || null,
     caricato_da: user?.id,
   });
 
+  if (progettoId) revalidatePath(`/dashboard/progetti/${progettoId}`);
   revalidatePath("/dashboard/materiali");
   revalidatePath("/dashboard/calendario");
 }
@@ -770,5 +774,96 @@ export async function eliminaFormat(id: string) {
   const supabase = createClient();
   await supabase.from("format_diretta").delete().eq("id", id);
   revalidatePath("/dashboard/membri-reparto");
+  revalidatePath("/dashboard/calendario");
+}
+
+export async function impostaStatoProgetto(id: string, stato: string) {
+  const supabase = createClient();
+  await supabase.from("progetti_professori").update({ stato }).eq("id", id);
+  revalidatePath(`/dashboard/progetti/${id}`);
+  revalidatePath("/dashboard/progetti");
+}
+
+export async function creaTaskProgetto(progettoId: string, formData: FormData) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  const titolo = formData.get("titolo") as string;
+  const descrizione = formData.get("descrizione") as string;
+  const assegnatoA = formData.get("assegnato_a") as string;
+  const scadenza = formData.get("scadenza") as string;
+
+  let reparto: string | null = null;
+  if (assegnatoA) {
+    const { data: p } = await supabase.from("profiles").select("reparto").eq("id", assegnatoA).single();
+    reparto = p?.reparto ?? null;
+  }
+
+  await supabase.from("tasks").insert({
+    titolo,
+    descrizione: descrizione || null,
+    assegnato_a: assegnatoA || null,
+    puntata_data: scadenza || null,
+    reparto,
+    progetto_id: progettoId,
+    stato: "da_fare",
+  });
+
+  if (assegnatoA) {
+    await supabase.from("avvisi").insert({
+      destinatario_id: assegnatoA,
+      testo: `Nuova task di progetto: "${titolo}"`,
+      creato_da: user?.id,
+    });
+  }
+  await registraAttivita("creato", "task", `Task di progetto "${titolo}"`, reparto, progettoId);
+
+  revalidatePath(`/dashboard/progetti/${progettoId}`);
+}
+
+export async function salvaCompitoProgetto(progettoId: string, personaId: string, compito: string) {
+  const supabase = createClient();
+  await supabase.from("progetto_compiti").upsert(
+    { progetto_id: progettoId, persona_id: personaId, compito, aggiornato_il: new Date().toISOString() },
+    { onConflict: "progetto_id,persona_id" }
+  );
+  revalidatePath(`/dashboard/progetti/${progettoId}`);
+}
+
+export async function creaObiettivoProgetto(progettoId: string, formData: FormData) {
+  const supabase = createClient();
+  await supabase.from("progetto_obiettivi").insert({
+    progetto_id: progettoId,
+    titolo: formData.get("titolo") as string,
+    descrizione: (formData.get("descrizione") as string) || null,
+    scadenza: (formData.get("scadenza") as string) || null,
+    tipo: (formData.get("tipo") as string) || "task",
+  });
+  revalidatePath(`/dashboard/progetti/${progettoId}`);
+}
+
+export async function updateObiettivoProgettoManuale(id: string, progresso: number) {
+  const supabase = createClient();
+  await supabase.from("progetto_obiettivi").update({ progresso_manuale: progresso }).eq("id", id);
+}
+
+export async function eliminaObiettivoProgetto(id: string, progettoId: string) {
+  const supabase = createClient();
+  await supabase.from("progetto_obiettivi").delete().eq("id", id);
+  revalidatePath(`/dashboard/progetti/${progettoId}`);
+}
+
+export async function creaEventoProgetto(progettoId: string, formData: FormData) {
+  const supabase = createClient();
+  const titolo = formData.get("titolo") as string;
+  const data = formData.get("data") as string;
+  await supabase.from("events").insert({
+    titolo,
+    quando: new Date(`${data}T09:00:00`).toISOString(),
+    tipo: "progetto",
+    membri: [],
+    progetto_id: progettoId,
+  });
+  revalidatePath(`/dashboard/progetti/${progettoId}`);
   revalidatePath("/dashboard/calendario");
 }

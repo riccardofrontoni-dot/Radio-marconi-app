@@ -234,6 +234,9 @@ export default function ProgettiClient({
                   {p.descrizione && <p style={{ fontSize: 13, marginBottom: 14 }}>{p.descrizione}</p>}
 
                   <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                    <a href={`/dashboard/progetti/${p.id}`} className="btn-primary" style={{ fontSize: 12, padding: "7px 14px", textDecoration: "none", background: "var(--dark)" }}>
+                      Apri workspace →
+                    </a>
                     {p.bandoUrl && (
                       <a href={p.bandoUrl} target="_blank" rel="noreferrer" className="btn-primary" style={{ fontSize: 12, padding: "7px 14px", textDecoration: "none" }}>
                         Scarica il bando
