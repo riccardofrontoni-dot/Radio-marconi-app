@@ -78,15 +78,6 @@ export default function LoginPage() {
         </svg>
 
         <div style={{ position: "relative", maxWidth: 420 }}>
-          <div
-            style={{
-              width: 92, height: 92, borderRadius: 22, background: "rgba(255,255,255,0.08)",
-              display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 28,
-            }}
-          >
-            <Image src="/logo.png" alt="" width={58} height={58} style={{ objectFit: "contain", filter: "invert(1)" }} />
-          </div>
-
           <h2 style={{ fontFamily: "Georgia, serif", fontSize: 30, fontWeight: 700, color: "#fff", lineHeight: 1.25, marginBottom: 10 }}>
             La dashboard di Radio Marconi
           </h2>
