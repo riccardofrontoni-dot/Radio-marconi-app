@@ -18,7 +18,7 @@ export async function GET() {
     const data = await response.json();
 
     if (data.error) {
-      return res.status(400).json({ error: data.error.message });
+      return NextResponse.json({ error: data.error.message }, { status: 400 });
     }
 
     return NextResponse.json({
