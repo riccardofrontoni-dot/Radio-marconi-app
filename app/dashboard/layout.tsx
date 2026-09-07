@@ -69,12 +69,20 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const isProfessore = ruoloEffettivo === "professore";
 
   let resocontiInAttesa = 0;
+  let avvisiNonLetti = 0;
   if (isRad) {
     const { count } = await supabase
       .from("quality_reports")
       .select("id", { count: "exact", head: true })
       .eq("stato", "in_revisione");
     resocontiInAttesa = count ?? 0;
+
+    const { count: countAvvisi } = await supabase
+      .from("avvisi")
+      .select("id", { count: "exact", head: true })
+      .eq("destinatario_id", profile.id)
+      .eq("letto", false);
+    avvisiNonLetti = countAvvisi ?? 0;
   }
 
   return (
@@ -87,6 +95,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         isSocial={isSocial}
         isProfessore={isProfessore}
         resocontiInAttesa={resocontiInAttesa}
+        avvisiNonLetti={avvisiNonLetti}
         fullName={profile.full_name}
         email={profile.email}
         reparto={repartoEffettivo}

@@ -36,7 +36,7 @@ export default function PanoramicaPersone({ persone }: { persone: Persona[] }) {
       </p>
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {persone.map((p) => (
-          <div key={p.id} className="card" style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px" }}>
+          <div key={p.id} className="card panoramica-riga" style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", flexWrap: "wrap" }}>
             <div style={{ width: 36, height: 36, borderRadius: "50%", background: p.reparto ? repartoColor(p.reparto) : "var(--dark)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 12, flexShrink: 0 }}>
               {(p.full_name || p.email).split(" ").map((s) => s[0]).slice(0, 2).join("").toUpperCase()}
             </div>
@@ -51,7 +51,8 @@ export default function PanoramicaPersone({ persone }: { persone: Persona[] }) {
               onChange={(e) => setTesti((t) => ({ ...t, [p.id]: e.target.value }))}
               type="text"
               placeholder="Scrivi un avviso..."
-              style={{ flex: 1, border: "1px solid var(--border)", borderRadius: 9, padding: "8px 11px", fontSize: 12.5, fontFamily: "inherit" }}
+              className="panoramica-input"
+              style={{ flex: 1, minWidth: 160, border: "1px solid var(--border)", borderRadius: 9, padding: "8px 11px", fontSize: 12.5, fontFamily: "inherit" }}
             />
             <button
               onClick={() => invia(p.id, p.full_name || p.email)}

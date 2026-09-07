@@ -22,6 +22,7 @@ type Evento = {
   membri: string[] | null;
   reparti_coinvolti: string[] | null;
   descrizione: string | null;
+  creato_da: string | null;
 };
 type FormatDiretta = {
   id: string;
@@ -189,28 +190,30 @@ export default function CalendarioClient({
                 );
               })}
             </div>
+
+            {/* --- legenda orizzontale, sempre visibile --- */}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 16px", marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--border)" }}>
+              {Object.entries(TIPO_LABEL).map(([key, label]) => (
+                <div key={key} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ width: 9, height: 9, borderRadius: "50%", background: TIPO_COLORE[key], flexShrink: 0 }} />
+                  <span style={{ fontSize: 11.5, color: "var(--gray-text)" }}>{label}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* --- pannello fisso a destra: legenda, o dettaglio del giorno --- */}
-      <div className="calendario-panel" style={{ flex: "0 0 400px", width: 400 }}>
-        <div className="card" style={{ padding: 26, position: "sticky", top: 20, maxHeight: "calc(100vh - 40px)", overflowY: "auto" }}>
+      {/* --- pannello fisso a destra: dettaglio del giorno selezionato --- */}
+      <div className="calendario-panel" style={{ flex: "0 0 400px", width: 400, alignSelf: "flex-start" }}>
+        <div className="card calendario-panel-inner" style={{ padding: 26, position: "sticky", top: 0, maxHeight: "100vh", overflowY: "auto" }}>
           {!giornoAperto ? (
-            <>
-              <div className="section-label" style={{ marginTop: 0 }}>Legenda</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 11, marginBottom: 18 }}>
-                {Object.entries(TIPO_LABEL).map(([key, label]) => (
-                  <div key={key} style={{ display: "flex", alignItems: "center", gap: 9 }}>
-                    <span style={{ width: 11, height: 11, borderRadius: "50%", background: TIPO_COLORE[key], flexShrink: 0 }} />
-                    <span style={{ fontSize: 13 }}>{label}</span>
-                  </div>
-                ))}
-              </div>
-              <p style={{ fontSize: 12, color: "var(--gray-text)", margin: 0, fontStyle: "italic" }}>
-                Clicca un giorno per vedere gli eventi.
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "30px 10px", color: "var(--gray-text)" }}>
+              <span style={{ fontSize: 30, marginBottom: 10, opacity: 0.5 }}>🗓️</span>
+              <p style={{ fontSize: 13, margin: 0, fontStyle: "italic" }}>
+                Clicca un giorno sul calendario per vedere i suoi eventi.
               </p>
-            </>
+            </div>
           ) : (
             <>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
@@ -262,6 +265,11 @@ export default function CalendarioClient({
                       <div style={{ padding: "0 14px 14px" }}>
                         {e.descrizione && (
                           <p style={{ fontSize: 12.5, color: "var(--dark)", margin: "0 0 10px" }}>{e.descrizione}</p>
+                        )}
+                        {e.creato_da && membroById(e.creato_da) && (
+                          <p style={{ fontSize: 10.5, color: "var(--gray-text)", fontStyle: "italic", margin: "0 0 10px" }}>
+                            Evento creato da {nomeMembro(membroById(e.creato_da)!)}
+                          </p>
                         )}
                         {e.tipo === "formazione" && e.reparti_coinvolti && e.reparti_coinvolti.length > 0 && (
                           <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 10 }}>

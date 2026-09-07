@@ -39,6 +39,7 @@ export default function Sidebar({
   isSocial,
   isProfessore,
   resocontiInAttesa,
+  avvisiNonLetti,
   fullName,
   email,
   reparto,
@@ -52,6 +53,7 @@ export default function Sidebar({
   isSocial: boolean;
   isProfessore: boolean;
   resocontiInAttesa: number;
+  avvisiNonLetti: number;
   fullName: string | null;
   email: string;
   reparto: string | null;
@@ -174,9 +176,13 @@ export default function Sidebar({
                 textDecoration: "none", transition: "background 0.15s ease",
                 background: inAnalisi ? "transparent" : "var(--white)",
                 color: inAnalisi ? "var(--gray-text)" : "var(--dark)",
+                position: "relative",
               }}
             >
               Andamento progetto
+              {avvisiNonLetti > 0 && (
+                <span style={{ position: "absolute", top: 2, right: 6, width: 7, height: 7, borderRadius: "50%", background: "#DC2626" }} />
+              )}
             </Link>
             <Link
               href="/dashboard/analisi"

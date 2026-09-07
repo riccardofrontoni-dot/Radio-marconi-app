@@ -193,6 +193,7 @@ export async function updateMemberReparto(profileId: string, reparto: string) {
 
 export async function createEvent(formData: FormData) {
   const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
   const titolo = formData.get("titolo") as string;
   const data = formData.get("data") as string; // YYYY-MM-DD
@@ -223,6 +224,7 @@ export async function createEvent(formData: FormData) {
     membri,
     reparti_coinvolti: tipo === "formazione" ? repartiCoinvolti : null,
     descrizione: descrizione || null,
+    creato_da: user?.id,
   });
 
   if (error) {

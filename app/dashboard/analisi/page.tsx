@@ -91,8 +91,9 @@ export default async function AnalisiPage({
     if (p.presente) presentiPerMembro[p.membro_id] = (presentiPerMembro[p.membro_id] ?? 0) + 1;
   });
 
-  // Membri attivi, filtrati per reparto se richiesto.
-  let query = supabase.from("profiles").select("*").eq("status", "attivo");
+  // Membri attivi, filtrati per reparto se richiesto. I Professori non fanno
+  // dirette e non vengono valutati, quindi non compaiono in questo elenco.
+  let query = supabase.from("profiles").select("*").eq("status", "attivo").neq("ruolo", "professore");
   if (repartoFiltro) query = query.eq("reparto", repartoFiltro);
   const { data: membri } = await query;
 
@@ -141,62 +142,53 @@ export default async function AnalisiPage({
         <p className="placeholder-note" style={{ marginTop: 0 }}>Nessun membro trovato per questo filtro.</p>
       )}
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {righe.map((m, i) => (
-          <div
-            key={m.id}
-            style={{
-              display: "flex", alignItems: "center", gap: 14, padding: "12px 16px",
-              border: "1px solid var(--border)", borderRadius: 12,
-            }}
-          >
-            <div style={{ width: 22, fontSize: 13, fontWeight: 700, color: "var(--gray-text)", textAlign: "center" }}>
-              {i + 1}
-            </div>
-            <div
-              style={{
-                width: 34, height: 34, borderRadius: "50%", flexShrink: 0,
-                background: m.reparto ? repartoColor(m.reparto) : "var(--light-bg)",
-                color: m.reparto ? "#fff" : "var(--gray-text)",
-                display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 12,
-              }}
-            >
-              {(m.full_name || m.email).split(" ").map((s: string) => s[0]).slice(0, 2).join("").toUpperCase()}
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13.5, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(210px, 1fr))", gap: 14 }}>
+        {righe.map((m) => {
+          const iniziali = (m.full_name || m.email).split(" ").map((s: string) => s[0]).slice(0, 2).join("").toUpperCase();
+          const stats = [
+            { label: "dirette", valore: String(m.dirette) },
+            { label: "voto medio", valore: m.votoMedio !== null ? m.votoMedio.toFixed(1) : "—" },
+            ...(m.reparto === "speaker" ? [{ label: "puntualità", valore: m.puntualita !== null ? `${m.puntualita}%` : "—" }] : []),
+            ...(m.riunioniAssegnate > 0 ? [{ label: "presenze riunioni", valore: m.presenzaRiunioni !== null ? `${m.presenzaRiunioni}%` : "—" }] : []),
+          ];
+          return (
+            <div key={m.id} className="card" style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", padding: "20px 16px" }}>
+              {m.avatar_url ? (
+                <img
+                  src={m.avatar_url}
+                  alt=""
+                  width={56}
+                  height={56}
+                  style={{ width: 56, height: 56, borderRadius: "50%", objectFit: "cover", marginBottom: 10 }}
+                />
+              ) : (
+                <div
+                  style={{
+                    width: 56, height: 56, borderRadius: "50%", marginBottom: 10,
+                    background: m.reparto ? repartoColor(m.reparto) : "var(--light-bg)",
+                    color: m.reparto ? "#fff" : "var(--gray-text)",
+                    display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 17,
+                  }}
+                >
+                  {iniziali}
+                </div>
+              )}
+              <div style={{ fontSize: 14, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>
                 {m.full_name || m.email}
               </div>
-              <div style={{ fontSize: 11.5, color: "var(--gray-text)" }}>{repartoLabel(m.reparto)}</div>
-            </div>
-            <div style={{ textAlign: "center", minWidth: 76 }}>
-              <div style={{ fontSize: 17, fontWeight: 700, fontFamily: "Georgia, serif" }}>{m.dirette}</div>
-              <div style={{ fontSize: 10.5, color: "var(--gray-text)" }}>dirette</div>
-            </div>
-            <div style={{ textAlign: "center", minWidth: 76 }}>
-              <div style={{ fontSize: 17, fontWeight: 700, fontFamily: "Georgia, serif" }}>
-                {m.votoMedio !== null ? m.votoMedio.toFixed(1) : "—"}
+              <div style={{ fontSize: 11, color: "var(--gray-text)", marginBottom: 16 }}>{repartoLabel(m.reparto)}</div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "12px 10px", width: "100%", paddingTop: 14, borderTop: "1px solid var(--border)" }}>
+                {stats.map((s) => (
+                  <div key={s.label}>
+                    <div style={{ fontSize: 16, fontWeight: 700, fontFamily: "Georgia, serif" }}>{s.valore}</div>
+                    <div style={{ fontSize: 9.5, color: "var(--gray-text)" }}>{s.label}</div>
+                  </div>
+                ))}
               </div>
-              <div style={{ fontSize: 10.5, color: "var(--gray-text)" }}>voto medio</div>
             </div>
-            {m.reparto === "speaker" && (
-              <div style={{ textAlign: "center", minWidth: 76 }}>
-                <div style={{ fontSize: 17, fontWeight: 700, fontFamily: "Georgia, serif", color: "var(--blue)" }}>
-                  {m.puntualita !== null ? `${m.puntualita}%` : "—"}
-                </div>
-                <div style={{ fontSize: 10.5, color: "var(--gray-text)" }}>puntualità</div>
-              </div>
-            )}
-            {m.riunioniAssegnate > 0 && (
-              <div style={{ textAlign: "center", minWidth: 76 }}>
-                <div style={{ fontSize: 17, fontWeight: 700, fontFamily: "Georgia, serif", color: "#8A6D3B" }}>
-                  {m.presenzaRiunioni !== null ? `${m.presenzaRiunioni}%` : "—"}
-                </div>
-                <div style={{ fontSize: 10.5, color: "var(--gray-text)" }}>presenze riunioni</div>
-              </div>
-            )}
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
