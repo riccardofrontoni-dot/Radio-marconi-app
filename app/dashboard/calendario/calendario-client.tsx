@@ -353,7 +353,11 @@ export default function CalendarioClient({
                   formats={formats}
                   onSalva={(formData) => {
                     startTransition(async () => {
-                      await createEvent(formData);
+                      const risultato = await createEvent(formData);
+                      if (risultato?.success === false) {
+                        mostraToast(risultato.errore ?? "Errore nel salvataggio dell'evento");
+                        return;
+                      }
                       setMostraForm(false);
                       mostraToast("Evento salvato");
                     });

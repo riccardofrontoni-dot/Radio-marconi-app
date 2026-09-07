@@ -215,7 +215,7 @@ export async function createEvent(formData: FormData) {
   const quando = new Date(`${data}T${ora || "00:00"}:00`).toISOString();
   const fine = oraFine ? new Date(`${data}T${oraFine}:00`).toISOString() : null;
 
-  await supabase.from("events").insert({
+  const { error } = await supabase.from("events").insert({
     titolo,
     quando,
     fine,
@@ -224,9 +224,15 @@ export async function createEvent(formData: FormData) {
     reparti_coinvolti: tipo === "formazione" ? repartiCoinvolti : null,
     descrizione: descrizione || null,
   });
+
+  if (error) {
+    return { success: false, errore: "Non hai il permesso di creare questo evento, oppure è mancato un campo obbligatorio." };
+  }
+
   await registraAttivita("creato", "evento", `Evento "${titolo}"`);
 
   revalidatePath("/dashboard/calendario");
+  return { success: true };
 }
 
 export async function updateEvent(eventId: string, formData: FormData) {
