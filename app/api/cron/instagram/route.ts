@@ -21,15 +21,17 @@ export async function GET() {
 
     const currentFollowers = data.followers_count;
 
-    // Filtro di sicurezza: se Meta restituisce un errore o un valore sporco (< 100), non aggiornare Supabase
-    if (!currentFollowers || currentFollowers < 100) {
-      return NextResponse.json({ 
-        warning: "Valore ignorato perché non valido o sotto la soglia minima", 
+    // Filtro di protezione: ignora se il dato è nullo, uguale a 2 o sotto i 100 follower
+    if (!currentFollowers || currentFollowers <= 2 || currentFollowers < 100) {
+      return NextResponse.json({
+        skipped: true,
+        reason: "Valore ricevuto non valido o anomalo (es. 2)",
         valore_ricevuto: currentFollowers ?? null,
-        meta_response: data 
-      }, { status: 400 });
+        meta_raw: data
+      }, { status: 200 });
     }
 
+    // Salva su Supabase solo se il dato è valido (es. >= 100)
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
