@@ -5,7 +5,8 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export async function GET() {
-  const accountId = process.env.INSTAGRAM_ACCOUNT_ID || "17841457383389110";
+  // ID Business Instagram specifico di Radio Marconi (NON l'ID della pagina Facebook)
+  const accountId = "17841457383389110";
   const accessToken = process.env.INSTAGRAM_ACCESS_TOKEN;
 
   if (!accessToken) {
@@ -21,17 +22,17 @@ export async function GET() {
 
     const currentFollowers = data.followers_count;
 
-    // Filtro di protezione: ignora se il dato è nullo, uguale a 2 o sotto i 100 follower
-    if (!currentFollowers || currentFollowers <= 2 || currentFollowers < 100) {
+    // Se Meta restituisce ancora un valore errato o sotto la soglia, blocca l'aggiornamento
+    if (currentFollowers === undefined || currentFollowers < 100) {
       return NextResponse.json({
         skipped: true,
-        reason: "Valore ricevuto non valido o anomalo (es. 2)",
+        reason: "Valore ignorato perché non valido o inferiore a 100",
         valore_ricevuto: currentFollowers ?? null,
-        meta_raw: data
-      }, { status: 200 });
+        meta_response: data
+      }, { status: 400 });
     }
 
-    // Salva su Supabase solo se il dato è valido (es. >= 100)
+    // Inserimento su Supabase
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
