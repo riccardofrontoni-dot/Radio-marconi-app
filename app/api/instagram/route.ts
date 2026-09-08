@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function GET() {
   const accountId = process.env.INSTAGRAM_ACCOUNT_ID;
@@ -15,19 +16,34 @@ export async function GET() {
   }
 
   try {
-    // Aggiunto username nei fields richiesti alla Graph API
     const url = `https://graph.facebook.com/v19.0/${accountId}?fields=username,followers_count&access_token=${accessToken}`;
-    const response = await fetch(url, { cache: "no-store" });
+    
+    // fetch senza cache
+    const response = await fetch(url, { 
+      cache: "no-store",
+      headers: {
+        "Cache-Control": "no-cache, no-store, must-revalidate"
+      }
+    });
+    
     const data = await response.json();
 
     if (data.error) {
       return NextResponse.json({ error: data.error.message }, { status: 400 });
     }
 
-    return NextResponse.json({
-      username: data.username,
-      followers: data.followers_count,
-    });
+    return NextResponse.json(
+      {
+        username: data.username,
+        followers: data.followers_count,
+        fetched_at: new Date().toISOString()
+      },
+      {
+        headers: {
+          "Cache-Control": "no-store, max-age=0, must-revalidate"
+        }
+      }
+    );
   } catch (error) {
     return NextResponse.json(
       { error: "Errore durante la chiamata a Instagram" },
