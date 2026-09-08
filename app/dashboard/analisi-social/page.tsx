@@ -4,14 +4,23 @@ import SocialTabs from "@/components/SocialTabs";
 import { fetchInstagramData } from "@/lib/instagram";
 import { createClient } from "@/lib/supabase/server";
 
-// FORZA NEXT.JS A RICARICARE LA PAGINA A OGNI VISITA SENZA CACHE
+// Impedisce a Next.js di pre-renderizzare staticamente la pagina durante npm run build
 export const dynamic = "force-dynamic";
 
 export default async function AnalisiSocialPage() {
-  // 1. Chiama le API live di Instagram (recupera follower reali e media)
-  const instaLive = await fetchInstagramData();
+  // 1. Recupera i dati reali da Instagram
+  const rawData = await fetchInstagramData();
 
-  // 2. Recupera lo storico dei follower dal database Supabase per il grafico
+  // 2. Mappa i dati nel formato esatto atteso da SocialProps (follower al singolare)
+  const instaLive = {
+    follower: rawData?.followers ?? 0,
+    username: "radiomarconi_",
+    latestMedia: null,
+    bestMedia: null,
+    worstMedia: null,
+  };
+
+  // 3. Recupera lo storico dei follower dal database Supabase
   const supabase = createClient();
   const { data: history } = await supabase
     .from("instagram_daily_stats")
@@ -29,7 +38,7 @@ export default async function AnalisiSocialPage() {
         </p>
       </div>
 
-      {/* Passa i dati reali a SocialTabs */}
+      {/* Passa il payload allineato a SocialTabs */}
       <SocialTabs instaLive={instaLive} history={history || []} />
     </div>
   );
