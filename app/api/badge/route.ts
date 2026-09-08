@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-// --- CONFIGURAZIONE CREDENZIALI SUPABASE ---
+// Configuration URL di Supabase
 const supabaseUrl = 'https://zkidiorbrjahpjbvtlpa.supabase.co';
 
-// Inserisci qui la tua SUPABASE_SERVICE_ROLE_KEY presa dalla Dashboard Supabase -> Project Settings -> API
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpraWRpb3JicmphaHBqYnZ0bHBhIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NzY4MjU0NiwiZXhwIjoyMTAzMjU4NTQ2fQ.ry92MENhMK98kTA5ta0jnc6SznSOUnblunI6VZr-ux8';
+// La chiave service_role è necessaria per eseguire inserimenti diretti nel database
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey, {
   auth: {
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (userError || !user) {
-      console.log(`Badge non riconosciuto: ${rfid_uid}`);
+      console.log(`Badge sconosciuto: ${rfid_uid}`);
       return NextResponse.json(
         { error: 'Badge non riconosciuto o non assegnato' },
         { status: 404 }
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
 
     const oraAttuale = new Date();
 
-    // 2. Determina se la timbratura è un INGRESSO o un'USCITA
+    // 2. Determina il tipo di timbratura (INGRESSO / USCITA alternati)
     const { data: lastLog } = await supabase
       .from('attendance_logs')
       .select('tipo')
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
 
     const tipoTimbratura = lastLog?.tipo === 'INGRESSO' ? 'USCITA' : 'INGRESSO';
 
-    // 3. Inserisci la nuova timbratura su Supabase
+    // 3. Registra la timbratura su Supabase
     const { data: newLog, error: logError } = await supabase
       .from('attendance_logs')
       .insert({
@@ -68,14 +68,14 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (logError) {
-      console.error('Errore durante l\'inserimento su Supabase:', logError);
+      console.error('Errore inserimento Supabase:', logError);
       return NextResponse.json(
         { error: 'Errore durante la registrazione nel database', dettagli: logError.message },
         { status: 500 }
       );
     }
 
-    // 4. Risposta di successo inviata all'ESP32
+    // 4. Risposta al lettore ESP32
     return NextResponse.json({
       success: true,
       utente: user.nome,
@@ -91,4 +91,9 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+// Supporto alle richieste OPTIONS per evitare blocchi CORS
+export async function OPTIONS() {
+  return NextResponse.json({}, { status: 200 });
 }
