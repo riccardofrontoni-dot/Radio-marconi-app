@@ -70,6 +70,7 @@ export default async function ProgettoWorkspacePage({ params }: { params: { id: 
 
   return (
     <ProgettoWorkspaceClient
+      key={params.id}
       progetto={{ ...progetto, bandoUrl }}
       tasks={tasks ?? []}
       materiali={materialiConLink}

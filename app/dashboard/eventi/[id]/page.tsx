@@ -70,6 +70,7 @@ export default async function EventoRadWorkspacePage({ params }: { params: { id:
 
   return (
     <EventoRadWorkspaceClient
+      key={params.id}
       evento={{ ...evento, documentoUrl }}
       tasks={tasks ?? []}
       materiali={materialiConLink}
