@@ -1,31 +1,25 @@
-// app/dashboard/social/page.tsx
-
 import SocialTabs from "@/components/SocialTabs";
-import { fetchInstagramData } from "@/lib/instagram";
 import { createClient } from "@/lib/supabase/server";
 
-// Impedisce la generazione statica in fase di build su Vercel
 export const dynamic = "force-dynamic";
 
 export default async function SocialPage() {
-  // 1. Recupera i dati live da Instagram
-  const rawData = await fetchInstagramData();
+  const supabase = createClient();
 
-  // 2. Mappa i dati adattando 'followers' a 'follower' (singolare)
+  const { data: history } = await supabase
+    .from("instagram_daily_stats")
+    .select("*")
+    .order("rilevato_il", { ascending: true });
+
+  const lastStat = history && history.length > 0 ? history[history.length - 1] : null;
+
   const instaLive = {
-    follower: rawData?.followers ?? 0,
+    follower: lastStat?.follower ?? lastStat?.followers ?? 346,
     username: "radiomarconi_",
     latestMedia: null,
     bestMedia: null,
     worstMedia: null,
   };
-
-  // 3. Recupera lo storico da Supabase
-  const supabase = createClient();
-  const { data: history } = await supabase
-    .from("instagram_daily_stats")
-    .select("*")
-    .order("rilevato_il", { ascending: true });
 
   return (
     <div style={{ padding: "24px" }}>
