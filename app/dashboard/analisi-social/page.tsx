@@ -4,6 +4,9 @@ import SocialTabs from "@/components/SocialTabs";
 import { fetchInstagramData } from "@/lib/instagram";
 import { createClient } from "@/lib/supabase/server";
 
+// FORZA NEXT.JS A RICARICARE LA PAGINA A OGNI VISITA SENZA CACHE
+export const dynamic = "force-dynamic";
+
 export default async function AnalisiSocialPage() {
   // 1. Chiama le API live di Instagram (recupera follower reali e media)
   const instaLive = await fetchInstagramData();
