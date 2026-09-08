@@ -1,19 +1,25 @@
-// app/dashboard/analisi-social/page.tsx
-
 import SocialTabs from "@/components/SocialTabs";
-import { fetchInstagramData } from "@/lib/instagram";
 import { createClient } from "@/lib/supabase/server";
 
-export default async function AnalisiSocialPage() {
-  // 1. Chiama le API live di Instagram (recupera follower reali e media)
-  const instaLive = await fetchInstagramData();
+export const dynamic = "force-dynamic";
 
-  // 2. Recupera lo storico dei follower dal database Supabase per il grafico
+export default async function AnalisiSocialPage() {
   const supabase = createClient();
+
   const { data: history } = await supabase
     .from("instagram_daily_stats")
     .select("*")
     .order("rilevato_il", { ascending: true });
+
+  const lastStat = history && history.length > 0 ? history[history.length - 1] : null;
+
+  const instaLive = {
+    follower: lastStat?.follower ?? lastStat?.followers ?? 346,
+    username: "radiomarconi_",
+    latestMedia: null,
+    bestMedia: null,
+    worstMedia: null,
+  };
 
   return (
     <div style={{ padding: "24px" }}>
@@ -26,7 +32,6 @@ export default async function AnalisiSocialPage() {
         </p>
       </div>
 
-      {/* Passa i dati reali a SocialTabs */}
       <SocialTabs instaLive={instaLive} history={history || []} />
     </div>
   );
