@@ -15,7 +15,7 @@ export async function GET() {
   }
 
   try {
-    const url = `https://graph.facebook.com/v19.0/${accountId}?fields=followers_count,media_count&access_token=${accessToken}`;
+    const url = `https://graph.facebook.com/v19.0/${accountId}?fields=followers_count&access_token=${accessToken}`;
     const response = await fetch(url, { cache: "no-store" });
     const data = await response.json();
 
@@ -25,7 +25,6 @@ export async function GET() {
 
     return NextResponse.json({
       followers: data.followers_count,
-      media_count: data.media_count,
     });
   } catch (error) {
     return NextResponse.json(
