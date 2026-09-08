@@ -15,7 +15,8 @@ export async function GET() {
   }
 
   try {
-    const url = `https://graph.facebook.com/v19.0/${accountId}?fields=followers_count&access_token=${accessToken}`;
+    // Aggiunto username nei fields richiesti alla Graph API
+    const url = `https://graph.facebook.com/v19.0/${accountId}?fields=username,followers_count&access_token=${accessToken}`;
     const response = await fetch(url, { cache: "no-store" });
     const data = await response.json();
 
@@ -24,6 +25,7 @@ export async function GET() {
     }
 
     return NextResponse.json({
+      username: data.username,
       followers: data.followers_count,
     });
   } catch (error) {
