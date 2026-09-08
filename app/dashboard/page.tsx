@@ -110,42 +110,46 @@ export default async function HomePage() {
 
       <PanoramicaReparti repartoAttuale={profile.reparto} />
 
-      <div className="section-label">Il tuo processo</div>
-      {(tasks ?? []).length === 0 && (
-        <p className="placeholder-note" style={{ marginTop: 0 }}>
-          Nessun task ancora assegnato al tuo reparto.
-        </p>
-      )}
-      {(tasks ?? []).map((t) => (
-        <form
-          key={t.id}
-          action={async () => {
-            "use server";
-            await toggleTask(t.id, t.completato);
-          }}
-        >
-          <button
-            type="submit"
-            style={{
-              display: "flex", alignItems: "center", width: "100%", textAlign: "left",
-              padding: "12px 14px", border: "1px solid var(--border)", borderRadius: 10,
-              marginBottom: 8, fontSize: 13.5, background: "var(--white)", fontFamily: "inherit",
-            }}
-          >
-            <span
-              style={{
-                width: 18, height: 18, borderRadius: "50%", marginRight: 12, flexShrink: 0,
-                border: t.completato ? "none" : "1.5px solid var(--border)",
-                background: t.completato ? "var(--blue)" : "transparent",
-                display: "inline-block",
+      {!isCapo && (
+        <>
+          <div className="section-label">Il tuo processo</div>
+          {(tasks ?? []).length === 0 && (
+            <p className="placeholder-note" style={{ marginTop: 0 }}>
+              Nessun task ancora assegnato al tuo reparto.
+            </p>
+          )}
+          {(tasks ?? []).map((t) => (
+            <form
+              key={t.id}
+              action={async () => {
+                "use server";
+                await toggleTask(t.id, t.completato);
               }}
-            />
-            <span style={{ textDecoration: t.completato ? "line-through" : "none", color: t.completato ? "#a1a1a6" : "var(--dark)" }}>
-              {t.titolo}
-            </span>
-          </button>
-        </form>
-      ))}
+            >
+              <button
+                type="submit"
+                style={{
+                  display: "flex", alignItems: "center", width: "100%", textAlign: "left",
+                  padding: "12px 14px", border: "1px solid var(--border)", borderRadius: 10,
+                  marginBottom: 8, fontSize: 13.5, background: "var(--white)", fontFamily: "inherit",
+                }}
+              >
+                <span
+                  style={{
+                    width: 18, height: 18, borderRadius: "50%", marginRight: 12, flexShrink: 0,
+                    border: t.completato ? "none" : "1.5px solid var(--border)",
+                    background: t.completato ? "var(--blue)" : "transparent",
+                    display: "inline-block",
+                  }}
+                />
+                <span style={{ textDecoration: t.completato ? "line-through" : "none", color: t.completato ? "#a1a1a6" : "var(--dark)" }}>
+                  {t.titolo}
+                </span>
+              </button>
+            </form>
+          ))}
+        </>
+      )}
     </div>
   );
 }

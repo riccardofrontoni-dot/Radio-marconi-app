@@ -23,16 +23,11 @@ export default async function MembriRepartoPage() {
     .eq("status", "attivo")
     .order("full_name");
 
-  const { data: tasks } = await supabase
-    .from("tasks")
-    .select("*")
-    .eq("reparto", profile.reparto);
-
   const { data: formats } = await supabase
     .from("format_diretta")
     .select("*")
     .eq("reparto", profile.reparto)
     .order("nome");
 
-  return <MembriRepartoClient membri={membri ?? []} tasksIniziali={tasks ?? []} reparto={profile.reparto} formatsIniziali={formats ?? []} />;
+  return <MembriRepartoClient membri={membri ?? []} reparto={profile.reparto} formatsIniziali={formats ?? []} />;
 }

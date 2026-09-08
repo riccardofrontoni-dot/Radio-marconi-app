@@ -119,7 +119,7 @@ export default function Sidebar({
 
       <NavLabel>{isProfessore ? "Andamento" : "Il tuo spazio"}</NavLabel>
       <NavItem href="/dashboard" pathname={pathname}>{isProfessore ? "Andamento progetto" : "Home"}</NavItem>
-      {!isProfessore && <NavItem href="/dashboard/task" pathname={pathname}>Task reparto</NavItem>}
+      {!isProfessore && <NavItem href="/dashboard/task" pathname={pathname}>Gestione task</NavItem>}
       {isCapo && <NavItem href="/dashboard/membri-reparto" pathname={pathname}>Membri del reparto</NavItem>}
       <NavItem href="/dashboard/calendario" pathname={pathname}>Calendario</NavItem>
       <NavItem href="/dashboard/materiali" pathname={pathname}>Materiali</NavItem>

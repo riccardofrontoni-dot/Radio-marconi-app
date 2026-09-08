@@ -136,6 +136,7 @@ export async function createTask(formData: FormData) {
 
   const titolo = formData.get("titolo") as string;
   const assegnatoA = formData.get("assegnato_a") as string;
+  const dataInizio = formData.get("data_inizio") as string;
   const puntataData = formData.get("puntata_data") as string;
   const descrizione = formData.get("descrizione") as string;
 
@@ -143,6 +144,7 @@ export async function createTask(formData: FormData) {
     titolo,
     reparto: profile?.reparto,
     assegnato_a: assegnatoA || null,
+    data_inizio: dataInizio || null,
     puntata_data: puntataData || null,
     descrizione: descrizione || null,
   });
