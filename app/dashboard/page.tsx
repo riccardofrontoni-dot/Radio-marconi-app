@@ -32,6 +32,7 @@ export default async function HomePage() {
 
   const daCompletare = (tasks ?? []).filter((t) => !t.completato).length;
   const isCapo = profile.ruolo === "capo";
+  const isRad = profile.ruolo === "rad";
 
   const { data: progettiTutti } = await supabase
     .from("progetti_professori")
@@ -59,7 +60,7 @@ export default async function HomePage() {
       </div>
 
       <AvvisiBanner destinatarioId={profile.id} />
-      {profile.ruolo === "rad" && <ResocontiInAttesaBanner />}
+      {isRad && <ResocontiInAttesaBanner />}
 
       {(mieiProgetti.length > 0 || mieiEventiRad.length > 0) && (
         <div style={{ marginBottom: 28 }}>
@@ -110,7 +111,15 @@ export default async function HomePage() {
 
       <PanoramicaReparti repartoAttuale={profile.reparto} />
 
-      {!isCapo && (
+      {isRad && (
+        <>
+          <div className="nav-divider" style={{ height: 1, background: "var(--border)", margin: "6px 0 24px" }} />
+          <div className="section-label" style={{ marginTop: 0 }}>Analisi generale — la stessa vista dei Professori</div>
+          <AnalisiProfessori supabase={supabase} />
+        </>
+      )}
+
+      {!isCapo && !isRad && (
         <>
           <div className="section-label">Il tuo processo</div>
           {(tasks ?? []).length === 0 && (
@@ -422,8 +431,28 @@ async function ResocontiInAttesaBanner() {
   );
 }
 
-// Home dedicata ai Professori: un report d'insieme sull'andamento del progetto.
+// Home dedicata ai Professori: intestazione + panoramica reparti + analisi generale.
 async function AndamentoProgetto({ supabase, nomeUtente }: { supabase: ReturnType<typeof createClient>; nomeUtente: string }) {
+  return (
+    <div>
+      <div style={{ marginBottom: 24 }}>
+        <h2 style={{ fontSize: 22 }}>Andamento progetto</h2>
+        <p style={{ color: "var(--gray-text)", fontSize: 13, marginTop: 4 }}>
+          Ciao, {nomeUtente} — panoramica di come sta andando Radio Marconi questo mese.
+        </p>
+      </div>
+
+      <PanoramicaReparti repartoAttuale={null} />
+
+      <AnalisiProfessori supabase={supabase} />
+    </div>
+  );
+}
+
+// Il cuore delle analisi dei Professori (barra generale, prossimo evento, migliori
+// membri/dirette, panoramica RAD/capi) — riusato sia nella Home dei Professori sia
+// in quella del RAD, così anche il RAD ha la vista completa.
+async function AnalisiProfessori({ supabase }: { supabase: ReturnType<typeof createClient> }) {
   const inizioMese = new Date();
   inizioMese.setDate(1);
   inizioMese.setHours(0, 0, 0, 0);
@@ -518,13 +547,6 @@ async function AndamentoProgetto({ supabase, nomeUtente }: { supabase: ReturnTyp
 
   return (
     <div>
-      <div style={{ marginBottom: 24 }}>
-        <h2 style={{ fontSize: 22 }}>Andamento progetto</h2>
-        <p style={{ color: "var(--gray-text)", fontSize: 13, marginTop: 4 }}>
-          Ciao, {nomeUtente} — panoramica di come sta andando Radio Marconi questo mese.
-        </p>
-      </div>
-
       {/* --- barra generale --- */}
       <div style={{ background: "var(--light-bg)", borderRadius: 16, padding: "22px 24px", marginBottom: 20 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }}>
@@ -552,8 +574,6 @@ async function AndamentoProgetto({ supabase, nomeUtente }: { supabase: ReturnTyp
           </div>
         </div>
       )}
-
-      <PanoramicaReparti repartoAttuale={null} />
 
       <div className="section-label" style={{ marginTop: 0 }}>Miglior membro per reparto</div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 10, marginBottom: 28 }}>
