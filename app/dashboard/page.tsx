@@ -52,7 +52,7 @@ export default async function HomePage() {
 
   return (
     <div>
-      <div style={{ marginBottom: 28 }}>
+      <div className="fade-in-up fade-in-up-1" style={{ marginBottom: 28 }}>
         <h2 style={{ fontSize: 22 }}>Home</h2>
         <p style={{ color: "var(--gray-text)", fontSize: 13, marginTop: 4 }}>
           Ciao, {profile.full_name || profile.email}
@@ -63,7 +63,7 @@ export default async function HomePage() {
       {isRad && <ResocontiInAttesaBanner />}
 
       {(mieiProgetti.length > 0 || mieiEventiRad.length > 0) && (
-        <div style={{ marginBottom: 28 }}>
+        <div className="fade-in-up fade-in-up-2" style={{ marginBottom: 28 }}>
           <div className="section-label" style={{ marginTop: 0 }}>I tuoi progetti ed eventi</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {mieiProgetti.map((p) => (
@@ -92,31 +92,39 @@ export default async function HomePage() {
         </div>
       )}
 
-      <div className="grid-stack-mobile" style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12, marginBottom: 28 }}>
+      <div className="grid-stack-mobile fade-in-up fade-in-up-2" style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12, marginBottom: 28 }}>
         <div className="card">
           <div style={{ fontSize: 12.5, color: "var(--gray-text)", marginBottom: 6 }}>Task da completare</div>
-          <div style={{ fontSize: 24, fontWeight: 600, fontFamily: "Georgia, serif" }}>{daCompletare}</div>
+          <div style={{ fontSize: 24, fontWeight: 600, fontFamily: "'Fraunces', Georgia, serif" }}>{daCompletare}</div>
         </div>
         <div className="card">
           <div style={{ fontSize: 12.5, color: "var(--gray-text)", marginBottom: 6 }}>Prossimo evento</div>
-          <div style={{ fontSize: 24, fontWeight: 600, fontFamily: "Georgia, serif" }}>
+          <div style={{ fontSize: 24, fontWeight: 600, fontFamily: "'Fraunces', Georgia, serif" }}>
             {nextEvent ? new Date(nextEvent.quando).toLocaleDateString("it-IT", { day: "numeric", month: "short" }) : "—"}
           </div>
         </div>
       </div>
 
-      <PromemoriaDirette reparto={profile.reparto} userId={profile.id} />
+      <div className="fade-in-up fade-in-up-3">
+        <PromemoriaDirette reparto={profile.reparto} userId={profile.id} />
+      </div>
 
-      {isCapo && <TeamOverview profile={profile} />}
+      {isCapo && (
+        <div className="fade-in-up fade-in-up-3">
+          <TeamOverview profile={profile} />
+        </div>
+      )}
 
-      <PanoramicaReparti repartoAttuale={profile.reparto} />
+      <div className="fade-in-up fade-in-up-4">
+        <PanoramicaReparti repartoAttuale={profile.reparto} />
+      </div>
 
       {isRad && (
-        <>
+        <div>
           <div className="nav-divider" style={{ height: 1, background: "var(--border)", margin: "6px 0 24px" }} />
           <div className="section-label" style={{ marginTop: 0 }}>Analisi generale — la stessa vista dei Professori</div>
-          <AnalisiProfessori supabase={supabase} />
-        </>
+          <AnalisiProfessori supabase={supabase} mostraPanoramica={false} />
+        </div>
       )}
 
       {!isCapo && !isRad && (
@@ -243,15 +251,15 @@ async function PanoramicaReparti({ repartoAttuale }: { repartoAttuale: string | 
           return (
             <div
               key={r.value}
+              className="card"
               style={{
                 display: "flex", alignItems: "center", gap: 12, padding: "10px 14px",
-                border: isMio ? `1.5px solid ${r.color}` : "1px solid var(--border)",
-                background: isMio ? `${r.color}12` : "var(--white)",
-                borderRadius: 10,
+                border: isMio ? `1.5px solid ${r.color}` : undefined,
+                background: isMio ? `${r.color}14` : undefined,
               }}
             >
               <span style={{ fontSize: 12, fontWeight: 700, color: "var(--gray-text)", width: 16 }}>{i + 1}</span>
-              <span style={{ width: 8, height: 8, borderRadius: "50%", background: r.color, flexShrink: 0 }} />
+              <span className="pulse-dot" style={{ width: 8, height: 8, borderRadius: "50%", background: r.color, flexShrink: 0 }} />
               <span style={{ fontSize: 12.5, fontWeight: isMio ? 700 : 500, flex: 1 }}>
                 {r.label}{isMio ? " (il tuo)" : ""}
               </span>
@@ -319,13 +327,15 @@ async function TeamOverview({ profile }: { profile: { id: string; reparto: strin
   return (
     <>
       <div className="section-label" style={{ marginTop: 0 }}>Andamento squadra</div>
-      <div style={{ background: "var(--light-bg)", borderRadius: 16, padding: "20px 22px", marginBottom: 20 }}>
+      <div className="card" style={{ padding: "20px 22px", marginBottom: 20 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }}>
           <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--dark)" }}>Questo mese</span>
-          <span style={{ fontSize: 24, fontWeight: 700, fontFamily: "Georgia, serif", color: "var(--blue)" }}>{andamentoSquadra}%</span>
+          <span style={{ fontSize: 24, fontWeight: 700, fontFamily: "'Fraunces', Georgia, serif", color: "var(--blue)" }}>{andamentoSquadra}%</span>
         </div>
-        <div style={{ height: 9, borderRadius: 999, background: "var(--white)", overflow: "hidden", marginBottom: 10 }}>
-          <div style={{ height: "100%", width: `${andamentoSquadra}%`, background: "var(--blue)", borderRadius: 999, transition: "width 0.4s ease" }} />
+        <div style={{ height: 9, borderRadius: 999, background: "var(--light-bg)", overflow: "hidden", marginBottom: 10, position: "relative" }}>
+          <div style={{ height: "100%", width: `${andamentoSquadra}%`, background: "linear-gradient(90deg, var(--blue-dark), var(--blue-light))", borderRadius: 999, transition: "width 0.4s ease", position: "relative", overflow: "hidden" }}>
+            <div className="shimmer-overlay" />
+          </div>
         </div>
         <div style={{ display: "flex", gap: 16, fontSize: 11, color: "var(--gray-text)" }}>
           <span>Task: {taskPercent !== null ? `${taskPercent}%` : "—"}</span>
@@ -359,7 +369,7 @@ async function TeamOverview({ profile }: { profile: { id: string; reparto: strin
           const completati = taskPersona.filter((t) => t.completato).length;
           const percentuale = taskPersona.length ? Math.round((completati / taskPersona.length) * 100) : 0;
           return (
-            <div key={m.id} style={{ border: "1px solid var(--border)", borderRadius: 10, padding: "10px 14px" }}>
+            <div key={m.id} className="card" style={{ padding: "10px 14px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, marginBottom: 6 }}>
                 <span style={{ fontWeight: 600 }}>{m.full_name || m.email}</span>
                 <span style={{ color: "var(--gray-text)" }}>{completati}/{taskPersona.length} task</span>
@@ -435,7 +445,7 @@ async function ResocontiInAttesaBanner() {
 async function AndamentoProgetto({ supabase, nomeUtente }: { supabase: ReturnType<typeof createClient>; nomeUtente: string }) {
   return (
     <div>
-      <div style={{ marginBottom: 24 }}>
+      <div className="fade-in-up fade-in-up-1" style={{ marginBottom: 24 }}>
         <h2 style={{ fontSize: 22 }}>Andamento progetto</h2>
         <p style={{ color: "var(--gray-text)", fontSize: 13, marginTop: 4 }}>
           Ciao, {nomeUtente} — panoramica di come sta andando Radio Marconi questo mese.
@@ -452,7 +462,7 @@ async function AndamentoProgetto({ supabase, nomeUtente }: { supabase: ReturnTyp
 // Il cuore delle analisi dei Professori (barra generale, prossimo evento, migliori
 // membri/dirette, panoramica RAD/capi) — riusato sia nella Home dei Professori sia
 // in quella del RAD, così anche il RAD ha la vista completa.
-async function AnalisiProfessori({ supabase }: { supabase: ReturnType<typeof createClient> }) {
+async function AnalisiProfessori({ supabase, mostraPanoramica = true }: { supabase: ReturnType<typeof createClient>; mostraPanoramica?: boolean }) {
   const inizioMese = new Date();
   inizioMese.setDate(1);
   inizioMese.setHours(0, 0, 0, 0);
@@ -537,24 +547,27 @@ async function AnalisiProfessori({ supabase }: { supabase: ReturnType<typeof cre
   const miglioreMese = puntateConTitolo[0] ?? null;
   const miglioreSettimana = puntateConTitolo.find((p) => new Date(p.evento!.quando) >= inizioSettimana) ?? null;
 
-  // --- RAD e capi reparto, per la sezione Panoramica ---
-  const { data: personePanoramica } = await supabase
-    .from("profiles")
-    .select("id, full_name, email, ruolo, reparto")
-    .eq("status", "attivo")
-    .in("ruolo", ["rad", "capo"])
-    .order("ruolo");
+  // --- solo RAD, per la sezione Panoramica (i Professori mandano avvisi solo al RAD) ---
+  const { data: personePanoramica } = mostraPanoramica
+    ? await supabase
+        .from("profiles")
+        .select("id, full_name, email, ruolo, reparto")
+        .eq("status", "attivo")
+        .eq("ruolo", "rad")
+    : { data: [] as { id: string; full_name: string | null; email: string; ruolo: string; reparto: string | null }[] };
 
   return (
     <div>
       {/* --- barra generale --- */}
-      <div style={{ background: "var(--light-bg)", borderRadius: 16, padding: "22px 24px", marginBottom: 20 }}>
+      <div className="card" style={{ padding: "22px 24px", marginBottom: 20 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }}>
           <span style={{ fontSize: 13, fontWeight: 700, color: "var(--dark)" }}>Andamento generale</span>
-          <span style={{ fontSize: 26, fontWeight: 700, fontFamily: "Georgia, serif", color: "var(--blue)" }}>{andamentoGenerale}%</span>
+          <span style={{ fontSize: 26, fontWeight: 700, fontFamily: "'Fraunces', Georgia, serif", color: "var(--blue)" }}>{andamentoGenerale}%</span>
         </div>
-        <div style={{ height: 10, borderRadius: 999, background: "var(--white)", overflow: "hidden", marginBottom: 12 }}>
-          <div style={{ height: "100%", width: `${andamentoGenerale}%`, background: "var(--blue)", borderRadius: 999, transition: "width 0.4s ease" }} />
+        <div style={{ height: 10, borderRadius: 999, background: "var(--light-bg)", overflow: "hidden", marginBottom: 12, position: "relative" }}>
+          <div style={{ height: "100%", width: `${andamentoGenerale}%`, background: "linear-gradient(90deg, var(--blue-dark), var(--blue-light))", borderRadius: 999, transition: "width 0.4s ease", position: "relative", overflow: "hidden" }}>
+            <div className="shimmer-overlay" />
+          </div>
         </div>
         <div style={{ display: "flex", gap: 18, fontSize: 11.5, color: "var(--gray-text)" }}>
           <span>Task: {taskPercent !== null ? `${taskPercent}%` : "—"}</span>
@@ -622,7 +635,7 @@ async function AnalisiProfessori({ supabase }: { supabase: ReturnType<typeof cre
         </div>
       </div>
 
-      <PanoramicaPersone persone={personePanoramica ?? []} />
+      {mostraPanoramica && <PanoramicaPersone persone={personePanoramica ?? []} />}
     </div>
   );
 }

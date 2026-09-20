@@ -104,15 +104,16 @@ export default function Sidebar({
         style={{
           width: "var(--sidebar-w)",
           flexShrink: 0,
-          background: "var(--light-bg)",
+          background: "linear-gradient(165deg, #2C7A45 0%, #1D5C34 55%, #0E3620 100%)",
           padding: "22px 16px",
           display: "flex",
           flexDirection: "column",
+          color: "#fff",
         }}
       >
       <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 6px", marginBottom: 30 }}>
         <Image src="/logo.png" alt="Radio Marconi" width={38} height={38} style={{ objectFit: "contain" }} />
-        <span className="sidebar-brand-text" style={{ fontFamily: "Georgia, serif", fontWeight: 700, fontSize: 16 }}>
+        <span className="sidebar-brand-text" style={{ fontFamily: "Georgia, serif", fontWeight: 700, fontSize: 16, color: "#fff" }}>
           Radio Marconi
         </span>
       </div>
@@ -127,7 +128,7 @@ export default function Sidebar({
 
       {isProfessore && (
         <>
-          <div className="nav-divider" style={{ height: 1, background: "var(--border)", margin: "14px 8px" }} />
+          <div className="nav-divider" style={{ height: 1, background: "rgba(255,255,255,0.18)", margin: "14px 8px" }} />
           <NavLabel>Professori</NavLabel>
           <NavItem href="/dashboard/progetti" pathname={pathname}>Progetti</NavItem>
           <NavItem href="/dashboard/presenze" pathname={pathname}>Presenze</NavItem>
@@ -138,7 +139,7 @@ export default function Sidebar({
 
       {isSpeaker && !isRad && (
         <>
-          <div className="nav-divider" style={{ height: 1, background: "var(--border)", margin: "14px 8px" }} />
+          <div className="nav-divider" style={{ height: 1, background: "rgba(255,255,255,0.18)", margin: "14px 8px" }} />
           <NavLabel>Speaker</NavLabel>
           <NavItem href="/dashboard/script" pathname={pathname}>I miei script</NavItem>
           <NavItem href="/dashboard/timer" pathname={pathname}>Timer diretta</NavItem>
@@ -147,7 +148,7 @@ export default function Sidebar({
 
       {isSocial && !isRad && (
         <>
-          <div className="nav-divider" style={{ height: 1, background: "var(--border)", margin: "14px 8px" }} />
+          <div className="nav-divider" style={{ height: 1, background: "rgba(255,255,255,0.18)", margin: "14px 8px" }} />
           <NavLabel>Social</NavLabel>
           <NavItem href="/dashboard/social-script" pathname={pathname}>I miei script social</NavItem>
         </>
@@ -155,7 +156,7 @@ export default function Sidebar({
 
       {isQualita && !isRad && (
         <>
-          <div className="nav-divider" style={{ height: 1, background: "var(--border)", margin: "14px 8px" }} />
+          <div className="nav-divider" style={{ height: 1, background: "rgba(255,255,255,0.18)", margin: "14px 8px" }} />
           <NavLabel>Qualità</NavLabel>
           <NavItem href="/dashboard/qualita" pathname={pathname}>Resoconto puntata</NavItem>
           <NavItem href="/dashboard/valutazioni" pathname={pathname}>Valutazioni</NavItem>
@@ -165,17 +166,17 @@ export default function Sidebar({
 
       {isRad && (
         <>
-          <div className="nav-divider" style={{ height: 1, background: "var(--border)", margin: "14px 8px" }} />
+          <div className="nav-divider" style={{ height: 1, background: "rgba(255,255,255,0.18)", margin: "14px 8px" }} />
           <NavLabel>RAD</NavLabel>
 
-          <div style={{ display: "flex", gap: 3, background: "var(--border)", borderRadius: 9, padding: 3, margin: "0 8px 10px" }}>
+          <div style={{ display: "flex", gap: 3, background: "rgba(255,255,255,0.14)", borderRadius: 9, padding: 3, margin: "0 8px 10px" }}>
             <Link
               href="/dashboard/admin"
               style={{
                 flex: 1, textAlign: "center", padding: "6px 4px", borderRadius: 7, fontSize: 11, fontWeight: 700,
                 textDecoration: "none", transition: "background 0.15s ease",
-                background: inAnalisi ? "transparent" : "var(--white)",
-                color: inAnalisi ? "var(--gray-text)" : "var(--dark)",
+                background: inAnalisi ? "transparent" : "#fff",
+                color: inAnalisi ? "rgba(255,255,255,0.75)" : "var(--dark)",
                 position: "relative",
               }}
             >
@@ -189,8 +190,8 @@ export default function Sidebar({
               style={{
                 flex: 1, textAlign: "center", padding: "6px 4px", borderRadius: 7, fontSize: 11, fontWeight: 700,
                 textDecoration: "none", transition: "background 0.15s ease",
-                background: inAnalisi ? "var(--white)" : "transparent",
-                color: inAnalisi ? "var(--dark)" : "var(--gray-text)",
+                background: inAnalisi ? "#fff" : "transparent",
+                color: inAnalisi ? "var(--dark)" : "rgba(255,255,255,0.75)",
               }}
             >
               Analisi
@@ -210,7 +211,7 @@ export default function Sidebar({
               <NavItem href="/dashboard/membri" pathname={pathname}>Membri</NavItem>
               <NavItem href="/dashboard/criteri-qualita" pathname={pathname}>Criteri qualità</NavItem>
 
-              <div className="nav-divider" style={{ height: 1, background: "var(--border)", margin: "14px 8px" }} />
+              <div className="nav-divider" style={{ height: 1, background: "rgba(255,255,255,0.18)", margin: "14px 8px" }} />
               <NavLabel>Contenuti</NavLabel>
               <NavItem href="/dashboard/script-archivio" pathname={pathname}>Script puntate</NavItem>
             </>
@@ -246,14 +247,14 @@ export default function Sidebar({
         )}
         {veroRad && (
           <div style={{ marginBottom: 10 }}>
-            <label style={{ fontSize: 10.5, fontWeight: 600, color: "var(--gray-text)", display: "block", marginBottom: 3 }}>
+            <label style={{ fontSize: 10.5, fontWeight: 600, color: "rgba(255,255,255,0.7)", display: "block", marginBottom: 3 }}>
               Visualizza come
             </label>
             <select
               value={vistaAttuale}
               onChange={(e) => cambiaVista(e.target.value)}
               disabled={isPending}
-              style={{ width: "100%", padding: "6px 8px", borderRadius: 7, border: "1px solid var(--border)", fontSize: 11.5, fontFamily: "inherit", background: "var(--white)" }}
+              style={{ width: "100%", padding: "6px 8px", borderRadius: 7, border: "1px solid rgba(255,255,255,0.25)", fontSize: 11.5, fontFamily: "inherit", background: "rgba(255,255,255,0.92)", color: "var(--dark)" }}
             >
               {OPZIONI_VISTA.map((o) => (
                 <option key={o.value} value={o.value}>{o.label}</option>
@@ -264,7 +265,7 @@ export default function Sidebar({
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
           <div
             style={{
-              width: 34, height: 34, borderRadius: "50%", background: "#E5F4EA",
+              width: 34, height: 34, borderRadius: "50%", background: "rgba(255,255,255,0.92)",
               color: "#1F5C33", display: "flex", alignItems: "center", justifyContent: "center",
               fontWeight: 700, fontSize: 12.5, flexShrink: 0,
             }}
@@ -272,8 +273,8 @@ export default function Sidebar({
             {initials}
           </div>
           <div style={{ fontSize: 12.5, overflow: "hidden" }}>
-            <div style={{ fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{displayName}</div>
-            <div style={{ color: "var(--gray-text)" }}>{badge}</div>
+            <div style={{ fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: "#fff" }}>{displayName}</div>
+            <div style={{ color: "rgba(255,255,255,0.68)" }}>{badge}</div>
           </div>
         </div>
         <LogoutButton />
@@ -293,7 +294,7 @@ function NavItem({ href, pathname, children }: { href: string; pathname: string;
 }
 function NavLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="nav-label" style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.04em", color: "#a1a1a6", padding: "0 12px", marginBottom: 6, marginTop: 4 }}>
+    <div className="nav-label" style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.04em", color: "rgba(255,255,255,0.55)", padding: "0 12px", marginBottom: 6, marginTop: 4 }}>
       {children}
     </div>
   );

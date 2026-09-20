@@ -2,16 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getEffectiveProfile } from "@/lib/vista";
 import TaskAccordionList from "./task-accordion";
-import AssegnazioneRadForm from "./assegnazione-rad-form";
 import GestioneTaskCapoClient from "./gestione-task-capo-client";
-
-const REPARTI = [
-  { value: "speaker", label: "Speaker" },
-  { value: "social", label: "Social media" },
-  { value: "tecnico_video", label: "Tecnico video" },
-  { value: "tecnico_audio", label: "Tecnico audio" },
-  { value: "qualita", label: "Qualità" },
-];
 
 type Urgenza = "ritardo" | "urgente" | "tranquillo";
 
@@ -38,11 +29,11 @@ export default async function TaskPage({
   const profile = await getEffectiveProfile(supabase, user!.id);
 
   if (profile.ruolo === "rad") {
-    return <VistaRad />;
+    return <VistaRad profile={profile} />;
   }
 
   if (profile.ruolo === "capo") {
-    return <VistaCapo profile={profile} filtro={searchParams.filtro} />;
+    return <VistaCapo profile={profile} />;
   }
 
   // Membro: le task assegnate a lui, più quelle assegnate a tutto il reparto (senza persona specifica).
@@ -87,8 +78,8 @@ export default async function TaskPage({
   );
 }
 
-// Capo reparto: la nuova "Gestione task" con tre schede (per persona, crea, vista generale).
-async function VistaCapo({ profile, filtro }: { profile: { id: string; reparto: string }; filtro?: string }) {
+// Capo reparto: "Gestione task" con tre schede (per persona, crea, vista generale) — un solo reparto, il suo.
+async function VistaCapo({ profile }: { profile: { id: string; reparto: string } }) {
   const supabase = createClient();
 
   const { data: membri } = await supabase
@@ -107,6 +98,32 @@ async function VistaCapo({ profile, filtro }: { profile: { id: string; reparto: 
   return <GestioneTaskCapoClient profile={profile} membri={membri ?? []} tasks={tuttiTask ?? []} />;
 }
 
+// RAD: stessa "Gestione task", ma su tutti i reparti insieme, con un filtro per scegliere.
+async function VistaRad({ profile }: { profile: { id: string; reparto: string | null } }) {
+  const supabase = createClient();
+
+  const { data: membri } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("status", "attivo")
+    .not("reparto", "is", null)
+    .order("full_name");
+
+  const { data: tuttiTask } = await supabase
+    .from("tasks")
+    .select("*")
+    .order("created_at", { ascending: true });
+
+  const { data: capiReparto } = await supabase
+    .from("profiles")
+    .select("id, full_name, email, ruolo, reparto")
+    .eq("status", "attivo")
+    .eq("ruolo", "capo")
+    .order("reparto");
+
+  return <GestioneTaskCapoClient profile={profile} membri={membri ?? []} tasks={tuttiTask ?? []} modalitaRad capiReparto={capiReparto ?? []} />;
+}
+
 function FiltroCard({ href, label, valore, attivo, colore }: { href: string; label: string; valore: number; attivo: boolean; colore: string }) {
   return (
     <Link
@@ -123,100 +140,3 @@ function FiltroCard({ href, label, valore, attivo, colore }: { href: string; lab
     </Link>
   );
 }
-
-async function VistaRad() {
-  const supabase = createClient();
-
-  const { data: membri } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("status", "attivo")
-    .order("full_name");
-
-  const { data: tasks } = await supabase
-    .from("tasks")
-    .select("*")
-    .order("created_at", { ascending: true });
-
-  return (
-    <div>
-      <h2 style={{ fontSize: 22, marginBottom: 6 }}>Task — tutti i reparti</h2>
-      <p style={{ color: "var(--gray-text)", fontSize: 13, marginBottom: 24 }}>
-        Vista completa: ogni reparto, chi ne fa parte, e i task assegnati a ciascuno dai capi reparto.
-      </p>
-
-      <AssegnazioneRadForm membri={membri ?? []} />
-
-      {REPARTI.map((r) => {
-        const membriReparto = (membri ?? []).filter((m) => m.reparto === r.value);
-        const taskReparto = (tasks ?? []).filter((t) => t.reparto === r.value);
-        const nonAssegnati = taskReparto.filter((t) => !t.assegnato_a);
-
-        return (
-          <div key={r.value} style={{ marginBottom: 30 }}>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 10 }}>
-              <h3 style={{ fontSize: 16 }}>{r.label}</h3>
-              <span style={{ fontSize: 12, color: "var(--gray-text)" }}>
-                {membriReparto.length} {membriReparto.length === 1 ? "persona" : "persone"} · {taskReparto.length} task
-              </span>
-            </div>
-
-            {membriReparto.length === 0 && (
-              <p className="placeholder-note" style={{ marginTop: 0, marginBottom: 10 }}>Nessun membro assegnato a questo reparto.</p>
-            )}
-
-            {membriReparto.map((m) => {
-              const taskPersona = taskReparto.filter((t) => t.assegnato_a === m.id);
-              return (
-                <div key={m.id} style={{ background: "var(--light-bg)", borderRadius: 12, padding: "12px 16px", marginBottom: 8 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: taskPersona.length ? 8 : 0 }}>
-                    <span style={{ fontSize: 13.5, fontWeight: 600 }}>{m.full_name || m.email}</span>
-                    {m.ruolo === "capo" && (
-                      <span style={{ fontSize: 10, fontWeight: 600, color: "var(--blue)", background: "#E5F4EA", borderRadius: 999, padding: "2px 8px" }}>
-                        Capo reparto
-                      </span>
-                    )}
-                  </div>
-
-                  {taskPersona.length === 0 ? (
-                    <p style={{ fontSize: 12, color: "var(--gray-text)", margin: 0 }}>Nessun task assegnato.</p>
-                  ) : (
-                    taskPersona.map((t) => (
-                      <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 0", fontSize: 12.5 }}>
-                        <span
-                          style={{
-                            width: 13, height: 13, borderRadius: "50%", flexShrink: 0,
-                            border: t.completato ? "none" : "1.5px solid var(--border)",
-                            background: t.completato ? "var(--blue)" : "transparent",
-                          }}
-                        />
-                        <span style={{ textDecoration: t.completato ? "line-through" : "none", color: t.completato ? "#a1a1a6" : "var(--dark)" }}>
-                          {t.titolo}
-                        </span>
-                      </div>
-                    ))
-                  )}
-                </div>
-              );
-            })}
-
-            {nonAssegnati.length > 0 && (
-              <div style={{ border: "1px dashed var(--border)", borderRadius: 12, padding: "12px 16px" }}>
-                <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--gray-text)", marginBottom: 6 }}>Non assegnati a nessuno</div>
-                {nonAssegnati.map((t) => (
-                  <div key={t.id} style={{ fontSize: 12.5, color: "var(--dark)", padding: "3px 0" }}>{t.titolo}</div>
-                ))}
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-const labelStyle: React.CSSProperties = { fontSize: 11.5, fontWeight: 600, display: "block", marginBottom: 4 };
-const inputStyle: React.CSSProperties = {
-  width: "100%", padding: "8px 10px", borderRadius: 7, border: "1px solid var(--border)",
-  fontSize: 12.5, fontFamily: "inherit", background: "var(--white)",
-};
