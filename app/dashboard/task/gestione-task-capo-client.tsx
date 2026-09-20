@@ -68,7 +68,10 @@ export default function GestioneTaskCapoClient({
 
       <div className="fade-in-up fade-in-up-2" style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 20 }}>
         <div style={{ display: "flex", gap: 4, background: "var(--light-bg)", borderRadius: 10, padding: 4, maxWidth: 640 }}>
-          {(["persone", "crea", "vista", ...(modalitaRad ? ["panoramica" as const] : [])]).map((t) => (
+          {(modalitaRad
+            ? (["persone", "crea", "vista", "panoramica"] as const)
+            : (["persone", "crea", "vista"] as const)
+          ).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
