@@ -18,9 +18,9 @@ export default async function IMieiScriptPage({
 
   if (profile.reparto !== "speaker") {
     return (
-      <div>
-        <h2 style={{ fontSize: 22, marginBottom: 10 }}>I miei script</h2>
-        <p style={{ color: "var(--gray-text)", fontSize: 14 }}>Questa sezione è per il reparto Speaker.</p>
+      <div className="card fade-in-up" style={{ maxWidth: 460 }}>
+        <h2 style={{ fontSize: 20, marginBottom: 8 }}>I miei script</h2>
+        <p style={{ color: "var(--gray-text)", fontSize: 13.5 }}>Questa sezione è per il reparto Speaker.</p>
       </div>
     );
   }
@@ -51,53 +51,67 @@ export default async function IMieiScriptPage({
   const mesePrec = mese === 0 ? meseKey(anno - 1, 11) : meseKey(anno, mese - 1);
   const meseSucc = mese === 11 ? meseKey(anno + 1, 0) : meseKey(anno, mese + 1);
 
+  // Raggruppa per giorno, come nelle altre liste (Valutazioni/Qualità).
+  const gruppi: { chiave: string; label: string; eventi: typeof eventi }[] = [];
+  eventi.forEach((e) => {
+    const d = new Date(e.quando);
+    const chiave = d.toDateString();
+    let g = gruppi.find((gr) => gr.chiave === chiave);
+    if (!g) {
+      g = { chiave, label: d.toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" }), eventi: [] };
+      gruppi.push(g);
+    }
+    g.eventi.push(e);
+  });
+
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6, flexWrap: "wrap", gap: 10 }}>
         <h2 style={{ fontSize: 22 }}>I miei script</h2>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <Link href={`/dashboard/script?mese=${mesePrec}`} style={navBtnStyle}>‹</Link>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <Link href={`/dashboard/script?mese=${mesePrec}`} className="evt-pill">‹</Link>
           <span style={{ fontSize: 13.5, fontWeight: 600, minWidth: 110, textAlign: "center" }}>{MESI[mese]} {anno}</span>
-          <Link href={`/dashboard/script?mese=${meseSucc}`} style={navBtnStyle}>›</Link>
+          <Link href={`/dashboard/script?mese=${meseSucc}`} className="evt-pill">›</Link>
         </div>
       </div>
       <p style={{ color: "var(--gray-text)", fontSize: 13, marginBottom: 24 }}>
         Le tue dirette e riunioni del mese — scrivi o modifica lo script da qui.
       </p>
 
-      {eventi.length === 0 && (
-        <p className="placeholder-note" style={{ marginTop: 0 }}>Nessuna puntata assegnata a te questo mese.</p>
-      )}
+      <div className="card fade-in-up">
+        {gruppi.length === 0 && (
+          <p className="placeholder-note" style={{ marginTop: 0 }}>Nessuna puntata assegnata a te questo mese.</p>
+        )}
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {eventi.map((e) => {
-          const haScript = eventiConScript.has(e.id);
-          return (
-            <div key={e.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "14px 16px", border: "1px solid var(--border)", borderRadius: 12 }}>
-              <div>
-                <div style={{ fontSize: 13.5, fontWeight: 600 }}>{e.titolo}</div>
-                <div style={{ fontSize: 11.5, color: "var(--gray-text)", marginTop: 2 }}>
-                  {TIPO_LABEL[e.tipo]} · {new Date(e.quando).toLocaleDateString("it-IT", { weekday: "short", day: "numeric", month: "short" })}
+        {gruppi.map((g) => (
+          <div key={g.chiave}>
+            <div className="val-day-label" style={{ textTransform: "capitalize" }}>{g.label}</div>
+            {g.eventi.map((e) => {
+              const haScript = eventiConScript.has(e.id);
+              return (
+                <div key={e.id} className="val-row" style={{ cursor: "default" }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div className="val-row-title">{e.titolo}</div>
+                    <div className="val-row-meta">
+                      {TIPO_LABEL[e.tipo]} · {new Date(e.quando).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })}
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", gap: 14, alignItems: "center", flexShrink: 0 }}>
+                    {haScript && e.tipo === "diretta" && (
+                      <Link href={`/dashboard/timer/${e.id}`} style={{ fontSize: 12, fontWeight: 600, color: "var(--blue)" }}>
+                        ⏱ Timer
+                      </Link>
+                    )}
+                    <Link href={`/dashboard/script/${e.id}`} className="evt-pill evt-pill-on" style={{ textDecoration: "none" }}>
+                      {haScript ? "Apri script" : "+ Crea script"}
+                    </Link>
+                  </div>
                 </div>
-              </div>
-              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <Link href={`/dashboard/script/${e.id}`} className="btn-primary" style={{ fontSize: 12, padding: "8px 14px", textDecoration: "none" }}>
-                  {haScript ? "Apri script" : "+ Crea script"}
-                </Link>
-                {haScript && e.tipo === "diretta" && (
-                  <Link href={`/dashboard/timer/${e.id}`} style={{ fontSize: 12, fontWeight: 600, color: "var(--blue)" }}>
-                    ⏱ Timer
-                  </Link>
-                )}
-              </div>
-            </div>
-          );
-        })}
+              );
+            })}
+          </div>
+        ))}
       </div>
     </div>
   );
 }
-
-const navBtnStyle: React.CSSProperties = {
-  fontSize: 16, color: "var(--dark)", padding: "3px 10px", borderRadius: 7, background: "var(--light-bg)",
-};

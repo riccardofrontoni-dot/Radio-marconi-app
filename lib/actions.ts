@@ -206,6 +206,7 @@ export async function createEvent(formData: FormData) {
   const repartiCoinvolti = formData.getAll("reparti_coinvolti") as string[];
   const descrizione = formData.get("descrizione") as string;
   const invioATutti = formData.get("invia_a_tutti") === "on";
+  const soloDirettivo = formData.get("solo_direttivo") === "on";
 
   if (tipo === "riunione" && invioATutti) {
     const { data: tutti } = await supabase.from("profiles").select("id").eq("status", "attivo");
@@ -227,6 +228,7 @@ export async function createEvent(formData: FormData) {
     reparti_coinvolti: tipo === "formazione" ? repartiCoinvolti : null,
     descrizione: descrizione || null,
     creato_da: user?.id,
+    solo_direttivo: soloDirettivo,
   });
 
   if (error) {
@@ -251,6 +253,7 @@ export async function updateEvent(eventId: string, formData: FormData) {
   const repartiCoinvolti = formData.getAll("reparti_coinvolti") as string[];
   const descrizione = formData.get("descrizione") as string;
   const invioATutti = formData.get("invia_a_tutti") === "on";
+  const soloDirettivo = formData.get("solo_direttivo") === "on";
 
   if (tipo === "riunione" && invioATutti) {
     const { data: tutti } = await supabase.from("profiles").select("id").eq("status", "attivo");
@@ -265,7 +268,7 @@ export async function updateEvent(eventId: string, formData: FormData) {
 
   await supabase
     .from("events")
-    .update({ titolo, quando, fine, tipo, membri, reparti_coinvolti: tipo === "formazione" ? repartiCoinvolti : null, descrizione: descrizione || null })
+    .update({ titolo, quando, fine, tipo, membri, reparti_coinvolti: tipo === "formazione" ? repartiCoinvolti : null, descrizione: descrizione || null, solo_direttivo: soloDirettivo })
     .eq("id", eventId);
 
   revalidatePath("/dashboard/calendario");

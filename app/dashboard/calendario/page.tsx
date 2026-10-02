@@ -51,6 +51,7 @@ export default async function CalendarioPage({
   const isSpeaker = profile.reparto === "speaker";
   const isSocial = profile.reparto === "social";
   const isRad = profile.ruolo === "rad";
+  const isProfessore = profile.ruolo === "professore";
 
   const { data: formats } = await supabase.from("format_diretta").select("*").eq("reparto", "speaker").order("nome");
 
@@ -80,6 +81,7 @@ export default async function CalendarioPage({
       isSpeaker={isSpeaker}
       isSocial={isSocial}
       isRad={isRad}
+      isProfessore={isProfessore}
       userId={profile.id}
     />
   );

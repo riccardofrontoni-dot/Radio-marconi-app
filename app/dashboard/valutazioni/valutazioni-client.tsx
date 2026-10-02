@@ -80,63 +80,49 @@ export default function ValutazioniClient({
 
   return (
     <div>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6, flexWrap: "wrap", gap: 10 }}>
+      <div className="fade-in-up" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6, flexWrap: "wrap", gap: 10 }}>
         <h2 style={{ fontSize: 22 }}>Valutazioni</h2>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <Link href={`/dashboard/valutazioni?mese=${mesePrec}`} style={navBtnStyle}>‹</Link>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <Link href={`/dashboard/valutazioni?mese=${mesePrec}`} className="evt-pill">‹</Link>
           <span style={{ fontSize: 13.5, fontWeight: 600, minWidth: 110, textAlign: "center" }}>{MESI[mese]} {anno}</span>
-          <Link href={`/dashboard/valutazioni?mese=${meseSucc}`} style={navBtnStyle}>›</Link>
+          <Link href={`/dashboard/valutazioni?mese=${meseSucc}`} className="evt-pill">›</Link>
         </div>
       </div>
-      <p style={{ color: "var(--gray-text)", fontSize: 13, marginBottom: 24 }}>
+      <p className="fade-in-up fade-in-up-1" style={{ color: "var(--gray-text)", fontSize: 13, marginBottom: 20 }}>
         Dirette e riunioni del mese. Apri una puntata per valutare chi c'era.
       </p>
 
-      {gruppi.length === 0 && (
-        <p className="placeholder-note" style={{ marginTop: 0 }}>Nessuna diretta o riunione questo mese.</p>
-      )}
+      <div className="card fade-in-up fade-in-up-2">
+        {gruppi.length === 0 && (
+          <p className="placeholder-note" style={{ marginTop: 0 }}>Nessuna diretta o riunione questo mese.</p>
+        )}
 
-      {gruppi.map((g) => (
-        <div key={g.chiave} style={{ marginBottom: 20 }}>
-          <div style={{ fontSize: 11.5, fontWeight: 600, color: "var(--gray-text)", textTransform: "capitalize", marginBottom: 8 }}>
-            {g.label}
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        {gruppi.map((g) => (
+          <div key={g.chiave}>
+            <div className="val-day-label" style={{ textTransform: "capitalize" }}>{g.label}</div>
             {g.eventi.map((e) => {
               const nPartecipanti = e.membri?.length ?? 0;
               const nValutati = (e.membri ?? []).filter((mid) => votoDi(e.id, mid)).length;
+              const badgeClass =
+                nPartecipanti === 0 ? "val-badge-empty" : nValutati === nPartecipanti ? "val-badge-done" : "val-badge-partial";
               return (
-                <button
-                  key={e.id}
-                  onClick={() => setEventoAperto(e.id)}
-                  style={{
-                    display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10,
-                    padding: "12px 16px", border: "1px solid var(--border)", borderRadius: 12,
-                    background: "var(--white)", cursor: "pointer", textAlign: "left", fontFamily: "inherit",
-                  }}
-                >
-                  <div>
-                    <div style={{ fontSize: 13.5, fontWeight: 600 }}>{e.titolo}</div>
-                    <div style={{ fontSize: 11.5, color: "var(--gray-text)", marginTop: 2 }}>
+                <button key={e.id} onClick={() => setEventoAperto(e.id)} className="val-row">
+                  <div style={{ minWidth: 0 }}>
+                    <div className="val-row-title">{e.titolo}</div>
+                    <div className="val-row-meta">
                       {TIPO_LABEL[e.tipo]} · {new Date(e.quando).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })}
                       {" · "}{nPartecipanti} {nPartecipanti === 1 ? "persona" : "persone"}
                     </div>
                   </div>
-                  <span
-                    style={{
-                      fontSize: 10.5, fontWeight: 700, padding: "3px 10px", borderRadius: 999,
-                      background: nPartecipanti === 0 ? "var(--light-bg)" : nValutati === nPartecipanti ? "#DCFCE7" : "#FEF3C7",
-                      color: nPartecipanti === 0 ? "var(--gray-text)" : nValutati === nPartecipanti ? "#166534" : "#92400E",
-                    }}
-                  >
+                  <span className={`val-badge ${badgeClass}`}>
                     {nPartecipanti === 0 ? "Nessuno" : `${nValutati}/${nPartecipanti} valutati`}
                   </span>
                 </button>
               );
             })}
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
 
       {/* --- scheda di valutazione --- */}
       {evento && (
@@ -148,52 +134,56 @@ export default function ValutazioniClient({
           <div
             onClick={(e) => e.stopPropagation()}
             className="modal-pop"
-            style={{ background: "var(--white)", borderRadius: 20, padding: 26, width: "100%", maxWidth: 560, maxHeight: "85vh", overflowY: "auto", boxShadow: "0 30px 70px rgba(0,0,0,0.4)" }}
+            style={{ background: "#F5F5F7", borderRadius: 20, padding: "30px 30px 26px", width: "100%", maxWidth: 560, maxHeight: "85vh", overflowY: "auto", boxShadow: "0 30px 70px rgba(0,0,0,0.4)", position: "relative" }}
           >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-              <h3 style={{ fontSize: 17 }}>{evento.titolo}</h3>
-              <button onClick={() => setEventoAperto(null)} style={{ border: "none", background: "var(--light-bg)", width: 30, height: 30, borderRadius: "50%", fontSize: 15, color: "var(--gray-text)", cursor: "pointer" }}>✕</button>
-            </div>
-            <p style={{ fontSize: 12, color: "var(--gray-text)", marginBottom: 18 }}>
+            <button
+              onClick={() => setEventoAperto(null)}
+              style={{ position: "absolute", top: 18, right: 18, border: "none", background: "var(--white)", width: 28, height: 28, borderRadius: "50%", fontSize: 13, color: "var(--gray-text)", cursor: "pointer", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}
+            >
+              ✕
+            </button>
+
+            <div className="val-eyebrow">Qualità · Valutazioni</div>
+            <h1 className="val-title">{evento.titolo}</h1>
+            <p className="val-subtitle">
               {new Date(evento.quando).toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" })}
+              {" · valuta chi ha partecipato"}
             </p>
 
             {(!partecipanti || partecipanti.length === 0) && (
-              <p className="placeholder-note" style={{ marginTop: 0 }}>Nessuna persona assegnata a questo evento.</p>
+              <p className="placeholder-note" style={{ marginTop: 14 }}>Nessuna persona assegnata a questo evento.</p>
             )}
 
             {partecipanti && partecipanti.length > 0 && (
-              <form action={handleSalva} style={{ display: "grid", gap: 16 }}>
+              <form action={handleSalva}>
                 {partecipanti.map((p) => {
                   const votoEsistente = votoDi(evento.id, p.id);
+                  const nome = p.full_name || p.email;
+                  const iniziale = nome.trim().charAt(0).toUpperCase();
+                  const colore = repartoColor(p.reparto);
                   return (
-                    <div key={p.id} style={{ border: "1px solid var(--border)", borderRadius: 12, padding: 14 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                        <span style={{ width: 8, height: 8, borderRadius: "50%", background: repartoColor(p.reparto) }} />
-                        <span style={{ fontSize: 13.5, fontWeight: 600 }}>{p.full_name || p.email}</span>
-                        <span style={{ fontSize: 11, color: "var(--gray-text)" }}>{repartoLabel(p.reparto)}</span>
+                    <div key={p.id} className="val-card2">
+                      <div className="val-card2-head">
+                        <span className="val-avt2" style={{ background: colore }}>{iniziale}</span>
+                        <span className="val-card2-name">{nome}</span>
                       </div>
-                      <div className="grid-stack-mobile" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+                      <div className="val-params-row">
                         {PARAMETRI.map((param) => (
-                          <div key={param.key}>
-                            <label style={{ fontSize: 10.5, fontWeight: 600, display: "block", marginBottom: 3 }}>{param.label}</label>
-                            <select
-                              name={`${param.key}_${p.id}`}
-                              defaultValue={votoEsistente ? String(votoEsistente[param.key]) : "3"}
-                              style={{ width: "100%", padding: "7px 8px", borderRadius: 7, border: "1px solid var(--border)", fontSize: 12.5, fontFamily: "inherit" }}
-                            >
-                              {[1, 2, 3, 4, 5].map((v) => <option key={v} value={v}>{v}</option>)}
-                            </select>
-                          </div>
+                          <StarRating
+                            key={param.key}
+                            name={`${param.key}_${p.id}`}
+                            label={param.label}
+                            defaultValue={votoEsistente ? votoEsistente[param.key] : 3}
+                          />
                         ))}
                       </div>
                     </div>
                   );
                 })}
-                <button type="submit" className="btn-primary">
+                <button type="submit" className="val-save-btn">
                   {isPending ? "Salvataggio…" : "Salva valutazioni"}
                 </button>
-                {salvato === evento.id && <p style={{ fontSize: 12, color: "#166534", textAlign: "center", margin: 0 }}>Valutazioni salvate.</p>}
+                {salvato === evento.id && <p style={{ fontSize: 12, color: "#166534", margin: "10px 0 0" }}>Valutazioni salvate.</p>}
               </form>
             )}
           </div>
@@ -203,6 +193,34 @@ export default function ValutazioniClient({
   );
 }
 
-const navBtnStyle: React.CSSProperties = {
-  fontSize: 16, color: "var(--dark)", padding: "3px 10px", borderRadius: 7, background: "var(--light-bg)",
-};
+function StarRating({
+  name,
+  label,
+  defaultValue,
+}: {
+  name: string;
+  label: string;
+  defaultValue: number;
+}) {
+  const [valore, setValore] = useState(defaultValue);
+
+  return (
+    <div className="val-param-col">
+      <span className="val-param-col-label">{label}</span>
+      <div className="val-stars2">
+        <input type="hidden" name={name} value={valore} />
+        {[1, 2, 3, 4, 5].map((v) => (
+          <button
+            key={v}
+            type="button"
+            onClick={() => setValore(v)}
+            className={`val-star2${v <= valore ? " val-star2-on" : ""}`}
+            aria-label={`${v} su 5`}
+          >
+            {v <= valore ? "★" : "☆"}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}

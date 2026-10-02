@@ -9,7 +9,7 @@ export default async function ScriptPage({ params }: { params: { eventoId: strin
 
   const { data: evento } = await supabase
     .from("events")
-    .select("id, titolo, quando, membri")
+    .select("id, titolo, quando, fine, tipo, membri")
     .eq("id", params.eventoId)
     .maybeSingle();
 
@@ -32,21 +32,29 @@ export default async function ScriptPage({ params }: { params: { eventoId: strin
     ? await supabase.from("script_blocchi").select("*").eq("script_id", script.id).order("ordine", { ascending: true })
     : { data: [] as any[] };
 
+  // Nomi dei partecipanti per il sottotitolo (es. "12 settembre · 16:00–17:00 · Marco, Giulia").
+  const idPartecipanti = evento.membri ?? [];
+  const { data: partecipantiProfili } = idPartecipanti.length
+    ? await supabase.from("profiles").select("id, full_name, email").in("id", idPartecipanti)
+    : { data: [] as { id: string; full_name: string | null; email: string }[] };
+  const nomiPartecipanti = idPartecipanti
+    .map((id: string) => partecipantiProfili?.find((p) => p.id === id))
+    .filter(Boolean)
+    .map((p: any) => (p!.full_name || p!.email).split(" ")[0]);
+
   const seiCoinvolto = (evento.membri ?? []).includes(profile.id);
   const puoModificare = profile.ruolo === "rad" || (profile.reparto === "speaker" && seiCoinvolto);
 
   return (
     <div>
-      <Link href="/dashboard/calendario" style={{ color: "var(--gray-text)", fontSize: 12.5, display: "inline-block", marginBottom: 10 }}>
-        ← Torna al calendario
+      <Link href="/dashboard/calendario" className="q-back" style={{ display: "inline-block" }}>
+        ‹ Torna al calendario
       </Link>
-      <h2 style={{ fontSize: 22, marginBottom: 4 }}>Script — {evento.titolo}</h2>
-      <p style={{ color: "var(--gray-text)", fontSize: 13, marginBottom: 24 }}>
-        {new Date(evento.quando).toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" })}
-      </p>
 
       <ScriptClient
         eventoId={evento.id}
+        evento={{ titolo: evento.titolo, quando: evento.quando, fine: evento.fine, tipo: evento.tipo }}
+        nomiPartecipanti={nomiPartecipanti}
         script={script ?? null}
         blocchiIniziali={blocchi ?? []}
         soloLettura={!puoModificare}

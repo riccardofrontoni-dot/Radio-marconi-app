@@ -13,9 +13,9 @@ export default async function ValutazioniPage({
   const puoValutare = profile.reparto === "qualita" || profile.ruolo === "rad";
   if (!puoValutare) {
     return (
-      <div>
-        <h2 style={{ fontSize: 22, marginBottom: 10 }}>Valutazioni</h2>
-        <p style={{ color: "var(--gray-text)", fontSize: 14 }}>Questa sezione è visibile solo al reparto qualità e al RAD.</p>
+      <div className="card fade-in-up" style={{ maxWidth: 460 }}>
+        <h2 style={{ fontSize: 20, marginBottom: 8 }}>Valutazioni</h2>
+        <p style={{ color: "var(--gray-text)", fontSize: 13.5 }}>Questa sezione è visibile solo al reparto qualità e al RAD.</p>
       </div>
     );
   }

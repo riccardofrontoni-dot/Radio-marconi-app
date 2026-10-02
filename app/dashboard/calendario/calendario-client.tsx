@@ -23,6 +23,7 @@ type Evento = {
   reparti_coinvolti: string[] | null;
   descrizione: string | null;
   creato_da: string | null;
+  solo_direttivo: boolean;
 };
 type FormatDiretta = {
   id: string;
@@ -52,6 +53,7 @@ export default function CalendarioClient({
   isSpeaker,
   isSocial,
   isRad,
+  isProfessore,
   userId,
 }: {
   anno: number;
@@ -68,6 +70,7 @@ export default function CalendarioClient({
   isSpeaker: boolean;
   isSocial: boolean;
   isRad: boolean;
+  isProfessore: boolean;
   userId: string;
 }) {
   const [giornoAperto, setGiornoAperto] = useState<string | null>(null);
@@ -237,6 +240,8 @@ export default function CalendarioClient({
                       evento={e}
                       membri={membri}
                       formats={formats}
+                      isRad={isRad}
+                      isProfessore={isProfessore}
                       onSalva={(formData) => {
                         startTransition(async () => {
                           await updateEvent(e.id, formData);
@@ -267,6 +272,11 @@ export default function CalendarioClient({
                         <div style={{ padding: "0 14px 14px" }}>
                           {e.descrizione && (
                             <p style={{ fontSize: 12.5, color: "var(--dark)", margin: "0 0 10px" }}>{e.descrizione}</p>
+                          )}
+                          {e.solo_direttivo && (
+                            <span style={{ display: "inline-block", fontSize: 10, fontWeight: 700, color: "#fff", background: "#6B4FA0", borderRadius: 999, padding: "3px 9px", marginBottom: 10 }}>
+                              🔒 Solo direttivo
+                            </span>
                           )}
                           {e.creato_da && membroById(e.creato_da) && (
                             <p style={{ fontSize: 10.5, color: "var(--gray-text)", fontStyle: "italic", margin: "0 0 10px" }}>
@@ -361,6 +371,8 @@ export default function CalendarioClient({
                     giornoISOdefault={giornoAperto}
                     membri={membri}
                     formats={formats}
+                    isRad={isRad}
+                    isProfessore={isProfessore}
                     onSalva={(formData) => {
                       startTransition(async () => {
                         const risultato = await createEvent(formData);
@@ -410,6 +422,8 @@ function EventoForm({
   giornoISOdefault,
   membri,
   formats,
+  isRad,
+  isProfessore,
   onSalva,
   onAnnulla,
 }: {
@@ -417,6 +431,8 @@ function EventoForm({
   giornoISOdefault: string;
   membri: Membro[];
   formats: FormatDiretta[];
+  isRad: boolean;
+  isProfessore: boolean;
   onSalva: (formData: FormData) => void;
   onAnnulla: () => void;
 }) {
@@ -428,6 +444,14 @@ function EventoForm({
   const [membriScelti, setMembriScelti] = useState<string[]>(evento?.membri ?? []);
   const [repartiScelti, setRepartiScelti] = useState<string[]>(evento?.reparti_coinvolti ?? []);
   const [invioATutti, setInvioATutti] = useState(false);
+  const [soloDirettivo, setSoloDirettivo] = useState(evento?.solo_direttivo ?? false);
+  const puoDirettivo = isRad || isProfessore;
+
+  function toggleDirettivo() {
+    const nuovo = !soloDirettivo;
+    setSoloDirettivo(nuovo);
+    if (nuovo) setTipo("riunione");
+  }
 
   const gruppi = REPARTI.map((r) => ({
     ...r,
@@ -447,48 +471,77 @@ function EventoForm({
     setMembriScelti(f.membri);
   }
 
+  const TIPI: { value: string; label: string }[] = [
+    { value: "diretta", label: "Diretta" },
+    { value: "riunione", label: "Riunione" },
+    { value: "registrazione", label: "Registrazione" },
+    { value: "formazione", label: "Formazione" },
+    { value: "altro", label: "Altro" },
+  ];
+
   return (
     <form
       action={(formData) => onSalva(formData)}
-      style={{ background: "var(--light-bg)", borderRadius: 14, padding: 16, display: "grid", gap: 10, marginBottom: 10 }}
+      className="evt-form settle-in"
+      style={{ background: "var(--white)", borderRadius: 14, border: "1px solid rgba(29,92,52,0.16)", padding: "14px 16px", display: "grid", gap: 4, marginBottom: 10 }}
     >
-      <div>
-        <label style={labelStyle}>Titolo</label>
-        <input name="titolo" type="text" required value={titolo} onChange={(e) => setTitolo(e.target.value)} placeholder="Es. Diretta Speaker" style={inputStyle} />
-      </div>
-      <div>
-        <label style={labelStyle}>Data</label>
-        <input name="data" type="date" required defaultValue={giornoISOdefault} style={inputStyle} />
-      </div>
-      <div className="grid-stack-mobile-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-        <div>
-          <label style={labelStyle}>Inizio</label>
-          <input name="ora" type="time" defaultValue={oraDefault} style={inputStyle} />
-        </div>
-        <div>
-          <label style={labelStyle}>Fine</label>
-          <input name="ora_fine" type="time" defaultValue={oraFineDefault} style={inputStyle} />
-        </div>
-      </div>
-      <div>
-        <label style={labelStyle}>Tipo</label>
-        <select name="tipo" value={tipo} onChange={(e) => setTipo(e.target.value)} style={inputStyle}>
-          <option value="diretta">Diretta</option>
-          <option value="riunione">Riunione</option>
-          <option value="registrazione">Giornata di registrazione</option>
-          <option value="formazione">Formazione</option>
-          <option value="altro">Altro</option>
-        </select>
-      </div>
-      <div>
-        <label style={labelStyle}>Descrizione (facoltativa)</label>
-        <textarea name="descrizione" defaultValue={evento?.descrizione ?? ""} placeholder="Dettagli sull'evento..." style={{ ...inputStyle, minHeight: 60, resize: "vertical" }} />
+      <div className="evt-field">
+        <label className="evt-label">Titolo</label>
+        <input name="titolo" type="text" required value={titolo} onChange={(e) => setTitolo(e.target.value)} placeholder="Es. Diretta Speaker" className="evt-input" />
       </div>
 
-      {tipo === "diretta" && formats.length > 0 && (
-        <div>
-          <label style={labelStyle}>Format (facoltativo — precompila titolo e speaker)</label>
-          <select onChange={(e) => scegliFormat(e.target.value)} defaultValue="" style={inputStyle}>
+      <div className="evt-field">
+        <label className="evt-label">Data</label>
+        <input name="data" type="date" required defaultValue={giornoISOdefault} className="evt-input" />
+      </div>
+
+      <div style={{ display: "flex", gap: 14 }}>
+        <div className="evt-field" style={{ flex: 1 }}>
+          <label className="evt-label">Inizio</label>
+          <input name="ora" type="time" defaultValue={oraDefault} className="evt-input" />
+        </div>
+        <div className="evt-field" style={{ flex: 1 }}>
+          <label className="evt-label">Fine</label>
+          <input name="ora_fine" type="time" defaultValue={oraFineDefault} className="evt-input" />
+        </div>
+      </div>
+
+      {soloDirettivo ? (
+        <input type="hidden" name="tipo" value="riunione" />
+      ) : (
+        <div style={{ padding: "10px 0" }}>
+          <label className="evt-label" style={{ marginBottom: 8 }}>Tipo</label>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {TIPI.map((t) => (
+              <button
+                type="button"
+                key={t.value}
+                onClick={() => setTipo(t.value)}
+                className={`evt-pill${tipo === t.value ? " evt-pill-on" : ""}`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+          <input type="hidden" name="tipo" value={tipo} />
+        </div>
+      )}
+
+      <div className="evt-field" style={{ borderBottom: "none" }}>
+        <label className="evt-label">Descrizione {soloDirettivo ? "(breve, facoltativa)" : "(facoltativa)"}</label>
+        <textarea
+          name="descrizione"
+          defaultValue={evento?.descrizione ?? ""}
+          placeholder="Dettagli sull'evento..."
+          className="evt-input"
+          style={{ minHeight: soloDirettivo ? 40 : 56, resize: "vertical", lineHeight: 1.5 }}
+        />
+      </div>
+
+      {!soloDirettivo && tipo === "diretta" && formats.length > 0 && (
+        <div className="evt-field">
+          <label className="evt-label">Format (facoltativo — precompila titolo e speaker)</label>
+          <select onChange={(e) => scegliFormat(e.target.value)} defaultValue="" className="evt-input" style={{ cursor: "pointer" }}>
             <option value="">— Scegli un format —</option>
             {formats.map((f) => (
               <option key={f.id} value={f.id}>{f.nome}</option>
@@ -497,66 +550,72 @@ function EventoForm({
         </div>
       )}
 
-      {tipo === "riunione" && (
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--white)", borderRadius: 10, padding: "10px 12px" }}>
-          <span style={{ fontSize: 12.5, fontWeight: 600 }}>Invia a tutti i membri</span>
+      {!soloDirettivo && tipo === "riunione" && (
+        <div className="evt-toggle-row">
+          <span className="evt-toggle-label">Invia a tutti i membri</span>
           <button
             type="button"
             onClick={() => setInvioATutti(!invioATutti)}
-            style={{ width: 38, height: 22, borderRadius: 20, border: "none", cursor: "pointer", position: "relative", background: invioATutti ? "var(--blue)" : "#d7dae3" }}
+            className={`evt-switch${invioATutti ? " evt-switch-on" : ""}`}
           >
             <input type="hidden" name="invia_a_tutti" value={invioATutti ? "on" : "off"} />
-            <span style={{ position: "absolute", top: 2, left: invioATutti ? 18 : 2, width: 18, height: 18, borderRadius: "50%", background: "#fff", transition: "left 0.2s ease", boxShadow: "0 1px 3px rgba(0,0,0,0.25)" }} />
+            <span className="evt-switch-knob" />
           </button>
         </div>
       )}
 
-      {tipo === "formazione" ? (
-        <div>
-          <label style={labelStyle}>Reparti coinvolti</label>
+      {!soloDirettivo && (tipo === "formazione" ? (
+        <div style={{ padding: "10px 0" }}>
+          <label className="evt-label" style={{ marginBottom: 8 }}>Reparti coinvolti</label>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-            {REPARTI.map((r) => (
-              <button
-                type="button"
-                key={r.value}
-                onClick={() => toggleReparto(r.value)}
-                style={{
-                  fontSize: 12, fontWeight: 600, padding: "6px 12px", borderRadius: 999, cursor: "pointer",
-                  border: `1px solid ${repartiScelti.includes(r.value) ? r.color : "var(--border)"}`,
-                  background: repartiScelti.includes(r.value) ? r.color : "var(--white)",
-                  color: repartiScelti.includes(r.value) ? "#fff" : "var(--dark)",
-                }}
-              >
-                {r.label}
-              </button>
-            ))}
+            {REPARTI.map((r) => {
+              const on = repartiScelti.includes(r.value);
+              return (
+                <button
+                  type="button"
+                  key={r.value}
+                  onClick={() => toggleReparto(r.value)}
+                  className="evt-pill"
+                  style={on ? { background: r.color, borderColor: r.color, color: "#fff" } : undefined}
+                >
+                  {r.label}
+                </button>
+              );
+            })}
           </div>
           {repartiScelti.map((r) => <input key={r} type="hidden" name="reparti_coinvolti" value={r} />)}
         </div>
       ) : !invioATutti ? (
-        <div>
-          <label style={labelStyle}>Persone coinvolte</label>
+        <div style={{ padding: "10px 0" }}>
+          <label className="evt-label" style={{ marginBottom: 8 }}>Persone coinvolte</label>
           {gruppi.length === 0 && (
             <p style={{ fontSize: 12, color: "var(--gray-text)", margin: 0 }}>
               Nessun membro attivo ancora — assegna reparti dalla sezione Membri.
             </p>
           )}
-          <div style={{ display: "flex", flexDirection: "column", gap: 10, maxHeight: 200, overflowY: "auto", padding: "2px 2px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, maxHeight: 190, overflowY: "auto", padding: "2px 2px" }}>
             {gruppi.map((g) => (
               <div key={g.value}>
-                <div style={{ fontSize: 10.5, fontWeight: 700, color: g.color, textTransform: "uppercase", letterSpacing: "0.03em", marginBottom: 4 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: g.color, textTransform: "uppercase", letterSpacing: "0.03em", marginBottom: 5 }}>
                   {g.label}
                 </div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                  {g.persone.map((p) => (
-                    <label
-                      key={p.id}
-                      style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, background: "var(--white)", border: "1px solid var(--border)", borderRadius: 999, padding: "5px 10px" }}
-                    >
-                      <input type="checkbox" checked={membriScelti.includes(p.id)} onChange={() => toggleMembro(p.id)} />
-                      {p.full_name || p.email}
-                    </label>
-                  ))}
+                  {g.persone.map((p) => {
+                    const on = membriScelti.includes(p.id);
+                    const nome = p.full_name || p.email;
+                    const iniziale = nome.trim().charAt(0).toUpperCase();
+                    return (
+                      <button
+                        type="button"
+                        key={p.id}
+                        onClick={() => toggleMembro(p.id)}
+                        className={`evt-chip${on ? " evt-chip-on" : ""}`}
+                      >
+                        <span className="evt-avt" style={{ background: g.color }}>{iniziale}</span>
+                        {nome}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             ))}
@@ -564,14 +623,26 @@ function EventoForm({
           {membriScelti.map((id) => <input key={id} type="hidden" name="membri" value={id} />)}
         </div>
       ) : (
-        <p style={{ fontSize: 11.5, color: "var(--gray-text)", fontStyle: "italic", margin: 0 }}>
-          Verranno coinvolti tutti i membri attivi della dashboard.
-        </p>
+        <p className="evt-note">Verranno coinvolti tutti i membri attivi della dashboard.</p>
+      ))}
+
+      {puoDirettivo && (
+        <div className="evt-toggle-row">
+          <span className="evt-toggle-label">🔒 Evento solo direttivo (visibile solo a RAD e Professori)</span>
+          <button
+            type="button"
+            onClick={toggleDirettivo}
+            className={`evt-switch evt-switch-purple${soloDirettivo ? " evt-switch-on" : ""}`}
+          >
+            <input type="hidden" name="solo_direttivo" value={soloDirettivo ? "on" : "off"} />
+            <span className="evt-switch-knob" />
+          </button>
+        </div>
       )}
 
-      <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+      <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
         <button type="submit" className="btn-primary" style={{ flex: 1 }}>Salva</button>
-        <button type="button" onClick={onAnnulla} style={{ padding: "10px 16px", borderRadius: 9, border: "1px solid var(--border)", background: "var(--white)", fontSize: 13 }}>
+        <button type="button" onClick={onAnnulla} className="evt-cancel">
           Annulla
         </button>
       </div>
@@ -588,9 +659,4 @@ const smallBtnStyle: React.CSSProperties = {
 const aggiungiBtnStyle: React.CSSProperties = {
   border: "1px dashed var(--border)", background: "var(--light-bg)", borderRadius: 10, padding: 10, width: "100%",
   fontSize: 12.5, fontWeight: 600, cursor: "pointer", color: "var(--dark)", marginTop: 6,
-};
-const labelStyle: React.CSSProperties = { fontSize: 12, fontWeight: 600, display: "block", marginBottom: 5 };
-const inputStyle: React.CSSProperties = {
-  width: "100%", padding: "10px 12px", borderRadius: 9, border: "1px solid var(--border)",
-  fontSize: 13.5, fontFamily: "inherit", background: "var(--white)",
 };
