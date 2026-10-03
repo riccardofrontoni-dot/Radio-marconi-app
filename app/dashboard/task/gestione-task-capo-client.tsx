@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { createTask } from "@/lib/actions";
+import { createTask, assegnaPersonaAEvento } from "@/lib/actions";
 import { REPARTI } from "@/lib/reparti";
 import TaskAccordionList from "./task-accordion";
 import PanoramicaPersone from "../panoramica-persone";
@@ -19,6 +19,13 @@ type Task = {
 };
 type Membro = { id: string; full_name: string | null; email: string; reparto: string; ruolo: string };
 type Urgenza = "ritardo" | "urgente" | "tranquillo";
+type EventoDaAssegnare = {
+  id: string;
+  titolo: string;
+  quando: string;
+  tipo: string;
+  repartoRichiesto: "social" | "speaker";
+};
 
 function classificaUrgenza(t: { completato: boolean; puntata_data: string | null }): Urgenza | null {
   if (t.completato) return null;
@@ -43,19 +50,23 @@ function statoPersona(taskPersona: Task[]): "critico" | "attenzione" | "buono" {
 const STATO_COLORE = { critico: "#DC2626", attenzione: "#D97706", buono: "#16A34A" };
 
 export default function GestioneTaskCapoClient({
-  profile, membri, tasks, modalitaRad, capiReparto,
+  profile, membri, tasks, modalitaRad, capiReparto, eventiDaAssegnare,
 }: {
   profile: { id: string; reparto: string | null };
   membri: Membro[];
   tasks: Task[];
   modalitaRad?: boolean;
   capiReparto?: { id: string; full_name: string | null; email: string; ruolo: string; reparto: string | null }[];
+  eventiDaAssegnare?: EventoDaAssegnare[];
 }) {
-  const [tab, setTab] = useState<"persone" | "crea" | "vista" | "panoramica">("persone");
+  const [tab, setTab] = useState<"task_da_fare" | "persone" | "crea" | "vista" | "panoramica">("task_da_fare");
   const [repartoFiltro, setRepartoFiltro] = useState<string>("tutti");
 
   const membriFiltrati = modalitaRad && repartoFiltro !== "tutti" ? membri.filter((m) => m.reparto === repartoFiltro) : membri;
   const tasksFiltrati = modalitaRad && repartoFiltro !== "tutti" ? tasks.filter((t) => t.reparto === repartoFiltro) : tasks;
+  const eventiFiltrati = modalitaRad && repartoFiltro !== "tutti"
+    ? (eventiDaAssegnare ?? []).filter((e) => e.repartoRichiesto === repartoFiltro)
+    : (eventiDaAssegnare ?? []);
 
   return (
     <div>
@@ -67,10 +78,10 @@ export default function GestioneTaskCapoClient({
       </div>
 
       <div className="fade-in-up fade-in-up-2" style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 20 }}>
-        <div style={{ display: "flex", gap: 4, background: "var(--light-bg)", borderRadius: 10, padding: 4, maxWidth: 640 }}>
+        <div style={{ display: "flex", gap: 4, background: "var(--light-bg)", borderRadius: 10, padding: 4, maxWidth: 640, flexWrap: "wrap" }}>
           {(modalitaRad
-            ? (["persone", "crea", "vista", "panoramica"] as const)
-            : (["persone", "crea", "vista"] as const)
+            ? (["task_da_fare", "persone", "crea", "vista", "panoramica"] as const)
+            : (["task_da_fare", "persone", "crea", "vista"] as const)
           ).map((t) => (
             <button
               key={t}
@@ -80,14 +91,20 @@ export default function GestioneTaskCapoClient({
                 transition: "background 0.2s ease, color 0.2s ease",
                 background: tab === t ? "var(--white)" : "transparent",
                 color: tab === t ? "var(--dark)" : "var(--gray-text)",
+                display: "flex", alignItems: "center", gap: 6, justifyContent: "center",
               }}
             >
-              {t === "persone" ? "Task per persona" : t === "crea" ? "Crea e assegna" : t === "vista" ? "Vista generale" : "Panoramica"}
+              {t === "task_da_fare" ? "Task da fare" : t === "persone" ? "Task per persona" : t === "crea" ? "Crea e assegna" : t === "vista" ? "Vista generale" : "Panoramica"}
+              {t === "task_da_fare" && eventiFiltrati.length > 0 && (
+                <span style={{ fontSize: 10, fontWeight: 700, color: "#fff", background: "#DC2626", borderRadius: 999, padding: "1px 6px", lineHeight: 1.4 }}>
+                  {eventiFiltrati.length}
+                </span>
+              )}
             </button>
           ))}
         </div>
 
-        {modalitaRad && (tab === "persone" || tab === "vista") && (
+        {modalitaRad && (tab === "persone" || tab === "vista" || tab === "task_da_fare") && (
           <select
             value={repartoFiltro}
             onChange={(e) => setRepartoFiltro(e.target.value)}
@@ -100,10 +117,111 @@ export default function GestioneTaskCapoClient({
       </div>
 
       <div key={tab}>
+        {tab === "task_da_fare" && <TabTaskDaFare eventi={eventiFiltrati} membri={membri} />}
         {tab === "persone" && <TabPersone membri={membriFiltrati} tasks={tasksFiltrati} profile={profile} raggruppaPerReparto={modalitaRad && repartoFiltro === "tutti"} />}
         {tab === "crea" && <TabCrea membriTutti={membri} modalitaRad={!!modalitaRad} repartoIniziale={repartoFiltro !== "tutti" ? repartoFiltro : ""} />}
         {tab === "vista" && <TabVista membri={membriFiltrati} tasks={tasksFiltrati} profile={profile} />}
         {tab === "panoramica" && <PanoramicaPersone persone={capiReparto ?? []} />}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// TAB 0 — Task da fare automatiche (dal calendario)
+// ============================================================
+function TabTaskDaFare({ eventi, membri }: { eventi: EventoDaAssegnare[]; membri: Membro[] }) {
+  const [isPending, startTransition] = useTransition();
+  const [sceltePersona, setSceltePersona] = useState<Record<string, string>>({});
+  const [toast, setToast] = useState<string | null>(null);
+  const [assegnati, setAssegnati] = useState<string[]>([]);
+
+  function assegna(eventoId: string) {
+    const personaId = sceltePersona[eventoId];
+    if (!personaId) return;
+    const formData = new FormData();
+    formData.set("evento_id", eventoId);
+    formData.set("persona_id", personaId);
+    startTransition(async () => {
+      const risultato = await assegnaPersonaAEvento(formData);
+      if (risultato?.success) {
+        setAssegnati((prev) => [...prev, eventoId]);
+        setToast("Persona assegnata e task creata");
+      } else {
+        setToast(risultato?.errore ?? "Errore durante l'assegnazione");
+      }
+      setTimeout(() => setToast(null), 2400);
+    });
+  }
+
+  const eventiVisibili = eventi.filter((e) => !assegnati.includes(e.id));
+
+  if (eventiVisibili.length === 0) {
+    return (
+      <p className="placeholder-note" style={{ marginTop: 0 }}>
+        Nessuna task automatica al momento: tutti gli eventi in programma hanno già qualcuno assegnato.
+      </p>
+    );
+  }
+
+  return (
+    <div>
+      <p style={{ color: "var(--gray-text)", fontSize: 12.5, marginBottom: 16 }}>
+        Eventi in calendario che non hanno ancora nessuno assegnato per il reparto richiesto. Scegli una persona per aggiungerla all'evento e crearle automaticamente la task.
+      </p>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {eventiVisibili.map((e) => {
+          const membriReparto = membri.filter((m) => m.reparto === e.repartoRichiesto);
+          const dataFormattata = new Date(e.quando).toLocaleDateString("it-IT", { weekday: "short", day: "numeric", month: "short" });
+          return (
+            <div key={e.id} className="card card-static" style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+              <div style={{ flex: 1, minWidth: 180 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 600 }}>{e.titolo}</div>
+                <div style={{ fontSize: 11.5, color: "var(--gray-text)", marginTop: 2 }}>
+                  {dataFormattata} · {e.tipo === "registrazione" ? "Registrazione" : "Diretta"} · manca {e.repartoRichiesto === "social" ? "Social" : "Speaker"}
+                </div>
+              </div>
+
+              {membriReparto.length === 0 ? (
+                <span style={{ fontSize: 12, color: "var(--gray-text)" }}>Nessun membro nel reparto</span>
+              ) : (
+                <>
+                  <select
+                    value={sceltePersona[e.id] ?? ""}
+                    onChange={(ev) => setSceltePersona((prev) => ({ ...prev, [e.id]: ev.target.value }))}
+                    style={{ ...inputStyle, width: "auto", minWidth: 160 }}
+                  >
+                    <option value="" disabled>Scegli chi...</option>
+                    {membriReparto.map((m) => <option key={m.id} value={m.id}>{m.full_name || m.email}</option>)}
+                  </select>
+                  <button
+                    type="button"
+                    disabled={!sceltePersona[e.id] || isPending}
+                    onClick={() => assegna(e.id)}
+                    className="btn-primary"
+                    style={{ padding: "9px 16px", fontSize: 12.5 }}
+                  >
+                    Assegna
+                  </button>
+                </>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      <div
+        className="toast-elastic"
+        style={{
+          position: "fixed", bottom: 26, right: 26, background: "var(--dark)", color: "#fff", padding: "13px 18px",
+          borderRadius: 13, fontSize: 13.5, display: "flex", alignItems: "center", gap: 10,
+          transform: toast ? "translateY(0)" : "translateY(140%)", zIndex: 50,
+          boxShadow: "0 14px 30px -10px rgba(0,0,0,0.4)",
+        }}
+      >
+        <span style={{ width: 18, height: 18, borderRadius: "50%", background: "var(--blue)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, flexShrink: 0 }}>✓</span>
+        <span>{toast}</span>
       </div>
     </div>
   );

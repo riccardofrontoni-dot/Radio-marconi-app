@@ -1138,3 +1138,69 @@ export async function creaEventoNelCalendarioEventoRad(radEventoId: string, form
   revalidatePath(`/dashboard/eventi/${radEventoId}`);
   revalidatePath("/dashboard/calendario");
 }
+
+export async function assegnaPersonaAEvento(formData: FormData) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  const eventoId = formData.get("evento_id") as string;
+  const personaId = formData.get("persona_id") as string;
+
+  if (!eventoId || !personaId) {
+    return { success: false, errore: "Dati mancanti." };
+  }
+
+  const { data: evento } = await supabase
+    .from("events")
+    .select("titolo, quando, tipo, membri")
+    .eq("id", eventoId)
+    .maybeSingle();
+
+  if (!evento) {
+    return { success: false, errore: "Evento non trovato." };
+  }
+
+  const membriAggiornati = Array.from(new Set([...(evento.membri ?? []), personaId]));
+
+  const { error: errEvento } = await supabase
+    .from("events")
+    .update({ membri: membriAggiornati })
+    .eq("id", eventoId);
+
+  if (errEvento) {
+    return { success: false, errore: "Non è stato possibile aggiornare l'evento." };
+  }
+
+  const { data: persona } = await supabase
+    .from("profiles")
+    .select("reparto")
+    .eq("id", personaId)
+    .maybeSingle();
+
+  const titoloTask =
+    evento.tipo === "registrazione"
+      ? `Scrivi lo script social per "${evento.titolo}"`
+      : `Preparati per la diretta "${evento.titolo}"`;
+
+  await supabase.from("tasks").insert({
+    titolo: titoloTask,
+    reparto: persona?.reparto ?? null,
+    assegnato_a: personaId,
+    data_inizio: new Date().toISOString().slice(0, 10),
+    puntata_data: evento.quando ? new Date(evento.quando).toISOString().slice(0, 10) : null,
+    descrizione: "Generata automaticamente dal calendario.",
+  });
+
+  await supabase.from("avvisi").insert({
+    destinatario_id: personaId,
+    testo: `Sei stato assegnato a "${evento.titolo}" — nuova task: "${titoloTask}"`,
+    creato_da: user?.id,
+  });
+
+  revalidatePath("/dashboard/calendario");
+  revalidatePath("/dashboard/task");
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/membri-reparto");
+
+  return { success: true };
+}

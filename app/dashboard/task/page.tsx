@@ -19,6 +19,52 @@ function classificaUrgenza(t: { completato: boolean; puntata_data: string | null
   return "tranquillo";
 }
 
+type EventoDaAssegnare = {
+  id: string;
+  titolo: string;
+  quando: string;
+  tipo: string;
+  repartoRichiesto: "social" | "speaker";
+};
+
+// Eventi "registrazione" senza nessuno del reparto Social tra i membri,
+// o eventi "diretta" senza nessuno del reparto Speaker tra i membri.
+async function fetchEventiDaAssegnare(
+  supabase: ReturnType<typeof createClient>,
+  repartiTarget: string[]
+): Promise<EventoDaAssegnare[]> {
+  if (repartiTarget.length === 0) return [];
+
+  const oggi = new Date();
+  oggi.setHours(0, 0, 0, 0);
+
+  const { data: eventi } = await supabase
+    .from("events")
+    .select("id, titolo, quando, tipo, membri")
+    .in("tipo", ["registrazione", "diretta"])
+    .gte("quando", oggi.toISOString())
+    .order("quando", { ascending: true });
+
+  const tuttiMembriIds = Array.from(new Set((eventi ?? []).flatMap((e) => e.membri ?? [])));
+  const { data: profiliMembri } = tuttiMembriIds.length
+    ? await supabase.from("profiles").select("id, reparto").in("id", tuttiMembriIds)
+    : { data: [] as { id: string; reparto: string | null }[] };
+
+  const repartoDi = (id: string) => profiliMembri?.find((p) => p.id === id)?.reparto;
+
+  return (eventi ?? [])
+    .map((e) => ({
+      ...e,
+      repartoRichiesto: (e.tipo === "registrazione" ? "social" : "speaker") as "social" | "speaker",
+    }))
+    .filter((e) => {
+      if (!repartiTarget.includes(e.repartoRichiesto)) return false;
+      const haGiaQualcuno = (e.membri ?? []).some((id: string) => repartoDi(id) === e.repartoRichiesto);
+      return !haGiaQualcuno;
+    })
+    .map((e) => ({ id: e.id, titolo: e.titolo, quando: e.quando, tipo: e.tipo, repartoRichiesto: e.repartoRichiesto }));
+}
+
 export default async function TaskPage({
   searchParams,
 }: {
@@ -78,7 +124,7 @@ export default async function TaskPage({
   );
 }
 
-// Capo reparto: "Gestione task" con tre schede (per persona, crea, vista generale) — un solo reparto, il suo.
+// Capo reparto: "Gestione task" con quattro schede (task da fare, per persona, crea, vista generale) — un solo reparto, il suo.
 async function VistaCapo({ profile }: { profile: { id: string; reparto: string } }) {
   const supabase = createClient();
 
@@ -95,7 +141,16 @@ async function VistaCapo({ profile }: { profile: { id: string; reparto: string }
     .eq("reparto", profile.reparto)
     .order("created_at", { ascending: true });
 
-  return <GestioneTaskCapoClient profile={profile} membri={membri ?? []} tasks={tuttiTask ?? []} />;
+  const eventiDaAssegnare = await fetchEventiDaAssegnare(supabase, [profile.reparto]);
+
+  return (
+    <GestioneTaskCapoClient
+      profile={profile}
+      membri={membri ?? []}
+      tasks={tuttiTask ?? []}
+      eventiDaAssegnare={eventiDaAssegnare}
+    />
+  );
 }
 
 // RAD: stessa "Gestione task", ma su tutti i reparti insieme, con un filtro per scegliere.
@@ -121,7 +176,18 @@ async function VistaRad({ profile }: { profile: { id: string; reparto: string | 
     .eq("ruolo", "capo")
     .order("reparto");
 
-  return <GestioneTaskCapoClient profile={profile} membri={membri ?? []} tasks={tuttiTask ?? []} modalitaRad capiReparto={capiReparto ?? []} />;
+  const eventiDaAssegnare = await fetchEventiDaAssegnare(supabase, ["social", "speaker"]);
+
+  return (
+    <GestioneTaskCapoClient
+      profile={profile}
+      membri={membri ?? []}
+      tasks={tuttiTask ?? []}
+      modalitaRad
+      capiReparto={capiReparto ?? []}
+      eventiDaAssegnare={eventiDaAssegnare}
+    />
+  );
 }
 
 function FiltroCard({ href, label, valore, attivo, colore }: { href: string; label: string; valore: number; attivo: boolean; colore: string }) {
