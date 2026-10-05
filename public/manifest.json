@@ -1,0 +1,21 @@
+{
+  "name": "Radio Marconi Attendance",
+  "short_name": "Marconi Badge",
+  "description": "Sistema di gestione presenze e timbrature RFID Radio Marconi",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#43a047",
+  "theme_color": "#43a047",
+  "icons": [
+    {
+      "src": "/icons/logopwa_192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/logopwa_512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
