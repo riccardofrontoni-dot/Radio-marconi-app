@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Radio Marconi - Dashboard", // <-- Questo è il nome predefinito per la schermata Home di iOS
+    title: "Radio Marconi - Dashboard", // Nome specifico per la schermata Home di Safari su iOS
   },
 };
 
@@ -23,6 +23,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="it">
+      <head>
+        {/* Forzatura diretta per Safari iOS */}
+        <meta name="apple-mobile-web-app-title" content="Radio Marconi - Dashboard" />
+      </head>
       <body>{children}</body>
     </html>
   );
