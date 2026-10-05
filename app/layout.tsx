@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Radio Marconi",
+    title: "Radio Marconi - Dashboard", // <-- Questo è il nome predefinito per la schermata Home di iOS
   },
 };
 
