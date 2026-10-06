@@ -1,0 +1,21 @@
+{
+  "name": "Radio Marconi - Dashboard",
+  "short_name": "Radio Marconi - Dashboard",
+  "description": "La dashboard di Radio Marconi",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#43a047",
+  "theme_color": "#43a047",
+  "icons": [
+    {
+      "src": "/icons/logopwa_192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/logopwa_512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
