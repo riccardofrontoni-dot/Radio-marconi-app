@@ -7,6 +7,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import LogoutButton from "./logout-button";
 import { impostaVistaRad } from "@/lib/actions";
+import ThemeToggle from "@/components/theme-toggle";
 
 const REPARTO_LABEL: Record<string, string> = {
   speaker: "Speaker",
@@ -240,6 +241,9 @@ export default function Sidebar({
       )}
 
       <div className="sidebar-footer" style={{ marginTop: "auto", padding: 10 }}>
+        <div style={{ marginBottom: 12 }}>
+          <ThemeToggle />
+        </div>
         {vistaAttiva && (
           <div style={{ background: "#FEF3C7", border: "1px solid #FDE68A", borderRadius: 8, padding: "6px 10px", marginBottom: 10, fontSize: 11, color: "#92400E", fontWeight: 600 }}>
             👁 Vista di prova attiva
