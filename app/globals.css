@@ -1,17 +1,56 @@
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
+  color-scheme: light;
+
   --dark: #1d1d1f;
   --gray-text: #6e6e73;
+
   --light-bg: #f5f5f7;
   --light-bg-hover: #ebebee;
+
   --blue: #3E9D5C;
   --blue-dark: #2C7A45;
   --blue-light: #4CAF6D;
+
   --border: #d2d2d7;
   --white: #ffffff;
+
+  --page-bg: #ffffff;
+  --surface: rgba(255, 255, 255, 0.94);
+  --surface-solid: #ffffff;
+  --surface-hover: #f5f5f7;
+  --text-primary: #1d1d1f;
+  --text-secondary: #6e6e73;
+  --border-color: #d2d2d7;
+
   --radius: 16px;
   --sidebar-w: 248px;
+}
+
+.dark {
+  color-scheme: dark;
+
+  --dark: #f0f2f0;
+  --gray-text: #a5ada7;
+
+  --light-bg: #252b27;
+  --light-bg-hover: #303832;
+
+  --blue: #65bd7d;
+  --blue-dark: #43a866;
+  --blue-light: #82d197;
+
+  --border: #3b443d;
+  --white: #171a18;
+
+  --page-bg: #111411;
+  --surface: rgba(28, 33, 29, 0.94);
+  --surface-solid: #1c211d;
+  --surface-hover: #252b27;
+  --text-primary: #f0f2f0;
+  --text-secondary: #a5ada7;
+  --border-color: #3b443d;
 }
 
 * { box-sizing: border-box; }
@@ -20,20 +59,73 @@ html { -webkit-text-size-adjust: 100%; }
 
 body {
   margin: 0;
-  font-family: 'Inter', -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
-  color: var(--dark);
+
+  font-family: 'Inter', -apple-system, "Segoe UI",
+    "Helvetica Neue", Arial, sans-serif;
+
+  color: var(--text-primary);
+
   -webkit-font-smoothing: antialiased;
+
   font-size: 15px;
   line-height: 1.5;
-  background-color: var(--white);
+
+  background-color: var(--page-bg);
+
   background-image:
-    radial-gradient(620px circle at 10% 10%, rgba(62, 157, 92, 0.20), transparent 62%),
-    radial-gradient(560px circle at 90% 18%, rgba(169, 224, 187, 0.26), transparent 62%),
-    radial-gradient(640px circle at 82% 88%, rgba(255, 148, 102, 0.14), transparent 60%),
-    radial-gradient(560px circle at 4% 90%, rgba(140, 123, 230, 0.13), transparent 60%);
+    radial-gradient(
+      620px circle at 10% 10%,
+      rgba(62, 157, 92, 0.20),
+      transparent 62%
+    ),
+    radial-gradient(
+      560px circle at 90% 18%,
+      rgba(169, 224, 187, 0.26),
+      transparent 62%
+    ),
+    radial-gradient(
+      640px circle at 82% 88%,
+      rgba(255, 148, 102, 0.14),
+      transparent 60%
+    ),
+    radial-gradient(
+      560px circle at 4% 90%,
+      rgba(140, 123, 230, 0.13),
+      transparent 60%
+    );
+
   background-attachment: fixed;
   background-repeat: no-repeat;
+
   animation: ambientDrift 24s ease-in-out infinite alternate;
+
+  transition:
+    background-color 0.25s ease,
+    color 0.25s ease;
+}
+
+.dark body {
+  background-image:
+    radial-gradient(
+      620px circle at 10% 10%,
+      rgba(62, 157, 92, 0.12),
+      transparent 62%
+    ),
+    radial-gradient(
+      560px circle at 90% 18%,
+      rgba(80, 130, 95, 0.10),
+      transparent 62%
+    ),
+    radial-gradient(
+      640px circle at 82% 88%,
+      rgba(150, 90, 65, 0.07),
+      transparent 60%
+    ),
+    radial-gradient(
+      560px circle at 4% 90%,
+      rgba(100, 85, 160, 0.08),
+      transparent 60%
+    );
 }
 
 @keyframes ambientDrift {
@@ -57,19 +149,41 @@ a { color: inherit; text-decoration: none; }
 :focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 
 .card {
-  background: rgba(255, 255, 255, 0.94);
+  background: var(--surface);
+
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(29, 92, 52, 0.16);
+
+  border: 1px solid var(--border-color);
   border-radius: 14px;
+
   padding: 20px;
-  transition: transform 0.22s cubic-bezier(.22,.9,.32,1), box-shadow 0.22s ease, border-color 0.22s ease;
+
+  transition:
+    transform 0.22s cubic-bezier(.22,.9,.32,1),
+    box-shadow 0.22s ease,
+    border-color 0.22s ease,
+    background-color 0.22s ease;
+
   transform-style: preserve-3d;
 }
 .card:hover {
-  transform: perspective(900px) rotateX(1.2deg) rotateY(-1.6deg) translateY(-3px);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05), 0 18px 30px -16px rgba(44, 122, 69, 0.30);
+  transform:
+    perspective(900px)
+    rotateX(1.2deg)
+    rotateY(-1.6deg)
+    translateY(-3px);
+
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05),
+    0 18px 30px -16px rgba(44, 122, 69, 0.30);
+
   border-color: rgba(62, 157, 92, 0.5);
+}
+
+.dark .card:hover {
+  box-shadow:
+    0 4px 10px rgba(0, 0, 0, 0.12),
+    0 18px 30px -16px rgba(44, 122, 69, 0.15);
 }
 
 /* Card "piatta" — per contenitori grandi (calendario, moduli) dove il sollevamento in
@@ -350,7 +464,13 @@ a { color: inherit; text-decoration: none; }
 }
 .val-subtitle { margin: 0 0 22px; font-size: 13.5px; color: var(--gray-text); }
 
-.val-card2 { background: #fff; border: 1px solid #E5E5EA; border-radius: 16px; padding: 18px 20px; margin-bottom: 14px; }
+.val-card2 {
+  background: var(--surface-solid);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 18px 20px;
+  margin-bottom: 14px;
+}
 .val-card2-head { display: flex; align-items: center; gap: 12px; margin-bottom: 2px; }
 .val-avt2 { width: 36px; height: 36px; border-radius: 50%; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; flex-shrink: 0; }
 .val-card2-name { font-size: 15px; font-weight: 650; color: var(--dark); }
@@ -407,7 +527,14 @@ a { color: inherit; text-decoration: none; }
 .q-pillopt-mig.q-pillopt-on { background: #D97706; border-color: #D97706; color: #fff; }
 .q-pillopt-crit.q-pillopt-on { background: #DC2626; border-color: #DC2626; color: #fff; }
 
-.q-resp-box { width: 100%; margin-top: 6px; background: #fff; border: 1px solid #E5E5EA; border-radius: 12px; padding: 18px 20px; }
+.q-resp-box {
+  width: 100%;
+  margin-top: 6px;
+  background: var(--surface-solid);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 18px 20px;
+}
 .q-resp-grid { display: grid; grid-template-columns: 1fr 160px; gap: 18px; margin-bottom: 14px; }
 
 /* --- pagina intera del resoconto (sostituisce l'elenco, niente più modale strizzato) --- */
@@ -460,3 +587,239 @@ a { color: inherit; text-decoration: none; }
 }
 .scr-plain::placeholder { color: #AEAEB2; }
 
+/* ---------- Theme toggle ---------- */
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 40px;
+  height: 40px;
+
+  flex-shrink: 0;
+
+  border: 1px solid var(--border-color);
+  border-radius: 50%;
+
+  background: var(--surface-solid);
+  color: var(--text-primary);
+
+  cursor: pointer;
+
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.theme-toggle:hover {
+  background: var(--surface-hover);
+  transform: rotate(12deg);
+}
+
+.theme-toggle:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 3px;
+}
+
+.theme-toggle:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-toggle {
+    transition: none;
+  }
+
+  .theme-toggle:hover {
+    transform: none;
+  }
+}
+
+
+/* ==========================================
+RADIO MARCONI — SUPPORTO TEMA SCURO
+Aggiungere alla fine di app/globals.css
+========================================== */
+
+/* Transizione uniforme dei colori */
+body,
+.card,
+.val-card2,
+.q-resp-box,
+.mobile-topbar,
+.evt-field,
+.evt-pill,
+.evt-chip,
+.evt-cancel,
+.q-pillopt,
+.q-btn-secondary,
+.val-row,
+.val-dim,
+.val-param-col,
+.scr-section {
+transition:
+background-color 0.2s ease,
+color 0.2s ease,
+border-color 0.2s ease;
+}
+
+/* Campi di testo e selettori */
+input,
+textarea,
+select {
+color: var(--text-primary);
+}
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+textarea,
+select {
+background-color: var(--surface-solid);
+border-color: var(--border-color);
+}
+
+input::placeholder,
+textarea::placeholder {
+color: var(--text-secondary);
+opacity: 0.8;
+}
+
+/* Pulsanti secondari */
+.evt-pill,
+.evt-chip,
+.evt-cancel,
+.q-pillopt,
+.q-btn-secondary {
+background-color: var(--surface-solid);
+color: var(--text-primary);
+border-color: var(--border-color);
+}
+
+/* Elementi selezionati: mantieni i rispettivi colori */
+.evt-pill-on {
+background-color: var(--blue);
+border-color: var(--blue);
+color: #fff;
+}
+
+.evt-chip-on {
+background-color: rgba(62, 157, 92, 0.12);
+border-color: var(--blue);
+color: var(--blue);
+}
+
+/* Bordi e separatori */
+.evt-field,
+.evt-toggle-row,
+.val-row,
+.val-dim,
+.val-param-col,
+.q-criterio,
+.scr-section {
+border-color: var(--border-color);
+}
+
+/* Intestazioni e testi secondari */
+.evt-label,
+.q-ring-den,
+.scr-section-name::placeholder,
+.scr-plain::placeholder {
+color: var(--text-secondary);
+}
+
+/* Barra superiore mobile */
+.mobile-topbar {
+background-color: var(--surface-solid);
+border-color: var(--border-color);
+}
+
+.mobile-menu-btn {
+background-color: var(--light-bg);
+}
+
+.mobile-menu-btn span {
+background-color: var(--text-primary);
+}
+
+/* Pulsante secondario del resoconto qualità */
+.q-btn-secondary:hover,
+.evt-cancel:hover,
+.evt-pill:hover,
+.evt-chip:hover,
+.q-pillopt:hover {
+background-color: var(--surface-hover);
+}
+
+/* Righe delle valutazioni */
+.val-row {
+color: var(--text-primary);
+}
+
+.val-row:hover {
+background-color: var(--surface-hover);
+}
+
+/* Schede e contenitori */
+.card,
+.val-card2,
+.q-resp-box {
+background-color: var(--surface);
+border-color: var(--border-color);
+}
+
+/* Campi dei moduli: mantieni lo sfondo trasparente */
+.evt-input,
+.scr-plain,
+.scr-section-name,
+.scr-duration-input {
+background-color: transparent;
+color: var(--text-primary);
+}
+
+/* Pulsante principale */
+.btn-primary {
+background-color: var(--blue);
+color: #fff;
+}
+
+.btn-primary:hover {
+background-color: var(--blue-dark);
+}
+
+/* Contrasto dei testi nel tema scuro */
+.dark .placeholder-note {
+color: var(--text-secondary);
+}
+
+.dark .evt-label,
+.dark .evt-input::placeholder,
+.dark .val-row-meta,
+.dark .q-ring-den,
+.dark .scr-section-name::placeholder,
+.dark .scr-plain::placeholder {
+color: var(--text-secondary);
+}
+
+/* Riduci le transizioni se richiesto dal sistema */
+@media (prefers-reduced-motion: reduce) {
+body,
+.card,
+.val-card2,
+.q-resp-box,
+.mobile-topbar,
+.evt-field,
+.evt-pill,
+.evt-chip,
+.evt-cancel,
+.q-pillopt,
+.q-btn-secondary,
+.val-row,
+.val-dim,
+.val-param-col,
+.scr-section {
+transition: none;
+}
+}
