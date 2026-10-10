@@ -36,7 +36,7 @@ export default async function ScriptArchivioPage({
   const { data: eventi } = await supabase
     .from("events")
     .select("id, titolo, quando, tipo, membri")
-    .in("tipo", ["diretta", "riunione"])
+    .eq("tipo", "diretta")
     .gte("quando", inizioMese.toISOString())
     .lte("quando", fineMese.toISOString())
     .order("quando", { ascending: false });
@@ -81,11 +81,11 @@ export default async function ScriptArchivioPage({
         </div>
       </div>
       <p style={{ color: "var(--gray-text)", fontSize: 13, marginBottom: 24 }}>
-        Archivio di tutti gli script scritti dagli speaker per dirette e riunioni.
+        Archivio di tutti gli script scritti dagli speaker per le dirette.
       </p>
 
       {gruppi.length === 0 && (
-        <p className="placeholder-note" style={{ marginTop: 0 }}>Nessuna diretta o riunione questo mese.</p>
+        <p className="placeholder-note" style={{ marginTop: 0 }}>Nessuna diretta questo mese.</p>
       )}
 
       {gruppi.map((g) => (

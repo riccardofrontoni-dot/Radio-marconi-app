@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getEffectiveProfile } from "@/lib/vista";
+import ResetDati from "./reset-dati";
 import { REPARTI, repartoColor, repartoLabel } from "@/lib/reparti";
 
 const MESI = [
@@ -49,9 +50,12 @@ export default async function AnalisiPage({
     ? await supabase.from("voti_membri").select("evento_id, membro_id, attitudine, professionalita, performance").in("evento_id", eventIds)
     : { data: [] as { evento_id: string; membro_id: string; attitudine: number; professionalita: number; performance: number }[] };
 
-  // Conteggio dirette e voti per membro (media dei tre parametri, su tutti i voti ricevuti nel mese).
+  // Conteggio dirette FATTE per membro: solo eventi di tipo "diretta" già avvenuti
+  // (le riunioni e gli eventi futuri non contano come dirette).
+  const adesso = new Date();
   const direttePerMembro: Record<string, number> = {};
   (eventi ?? []).forEach((e) => {
+    if (e.tipo !== "diretta" || new Date(e.quando) > adesso) return;
     (e.membri ?? []).forEach((mid: string) => {
       direttePerMembro[mid] = (direttePerMembro[mid] ?? 0) + 1;
     });
@@ -73,15 +77,15 @@ export default async function AnalisiPage({
     (precisionePerMembro[s.membro_id] ??= []).push(s.precisione);
   });
 
-  // Presenze alle riunioni del sabato.
-  const riunioniIds = (eventi ?? []).filter((e) => e.tipo === "riunione").map((e) => e.id);
+  // Presenze alle riunioni del sabato (solo riunioni già avvenute).
+  const riunioniPassate = (eventi ?? []).filter((e) => e.tipo === "riunione" && new Date(e.quando) <= adesso);
+  const riunioniIds = riunioniPassate.map((e) => e.id);
   const { data: presenzeRiunioni } = riunioniIds.length
     ? await supabase.from("presenze_riunioni").select("evento_id, membro_id, presente").in("evento_id", riunioniIds)
     : { data: [] as { evento_id: string; membro_id: string; presente: boolean }[] };
 
   const riunioniAssegnatePerMembro: Record<string, number> = {};
-  (eventi ?? []).forEach((e) => {
-    if (e.tipo !== "riunione") return;
+  riunioniPassate.forEach((e) => {
     (e.membri ?? []).forEach((mid: string) => {
       riunioniAssegnatePerMembro[mid] = (riunioniAssegnatePerMembro[mid] ?? 0) + 1;
     });
@@ -126,7 +130,7 @@ export default async function AnalisiPage({
         </div>
       </div>
       <p style={{ color: "var(--gray-text)", fontSize: 13, marginBottom: 20 }}>
-        Dirette fatte e voto medio ricevuto, per organizzare premi settimanali o mensili.
+        Dirette fatte e voto medio ricevuto, per organizzare premi settimanali o mensili. Clicca su una persona per vedere la sua cronologia.
       </p>
 
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 24 }}>
@@ -152,44 +156,49 @@ export default async function AnalisiPage({
             ...(m.riunioniAssegnate > 0 ? [{ label: "presenze riunioni", valore: m.presenzaRiunioni !== null ? `${m.presenzaRiunioni}%` : "—" }] : []),
           ];
           return (
-            <div key={m.id} className="card" style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", padding: "20px 16px" }}>
-              {m.avatar_url ? (
-                <img
-                  src={m.avatar_url}
-                  alt=""
-                  width={56}
-                  height={56}
-                  style={{ width: 56, height: 56, borderRadius: "50%", objectFit: "cover", marginBottom: 10 }}
-                />
-              ) : (
-                <div
-                  style={{
-                    width: 56, height: 56, borderRadius: "50%", marginBottom: 10,
-                    background: m.reparto ? repartoColor(m.reparto) : "var(--light-bg)",
-                    color: m.reparto ? "#fff" : "var(--gray-text)",
-                    display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 17,
-                  }}
-                >
-                  {iniziali}
-                </div>
-              )}
-              <div style={{ fontSize: 14, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>
-                {m.full_name || m.email}
-              </div>
-              <div style={{ fontSize: 11, color: "var(--gray-text)", marginBottom: 16 }}>{repartoLabel(m.reparto)}</div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "12px 10px", width: "100%", paddingTop: 14, borderTop: "1px solid var(--border)" }}>
-                {stats.map((s) => (
-                  <div key={s.label}>
-                    <div style={{ fontSize: 16, fontWeight: 700, fontFamily: "Georgia, serif" }}>{s.valore}</div>
-                    <div style={{ fontSize: 9.5, color: "var(--gray-text)" }}>{s.label}</div>
+            <Link key={m.id} href={`/dashboard/analisi/${m.id}`} style={{ textDecoration: "none", color: "inherit", display: "block" }}>
+              <div className="card" style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", padding: "20px 16px", height: "100%", cursor: "pointer" }}>
+                {m.avatar_url ? (
+                  <img
+                    src={m.avatar_url}
+                    alt=""
+                    width={56}
+                    height={56}
+                    style={{ width: 56, height: 56, borderRadius: "50%", objectFit: "cover", marginBottom: 10 }}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      width: 56, height: 56, borderRadius: "50%", marginBottom: 10,
+                      background: m.reparto ? repartoColor(m.reparto) : "var(--light-bg)",
+                      color: m.reparto ? "#fff" : "var(--gray-text)",
+                      display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 17,
+                    }}
+                  >
+                    {iniziali}
                   </div>
-                ))}
+                )}
+                <div style={{ fontSize: 14, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>
+                  {m.full_name || m.email}
+                </div>
+                <div style={{ fontSize: 11, color: "var(--gray-text)", marginBottom: 16 }}>{repartoLabel(m.reparto)}</div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "12px 10px", width: "100%", paddingTop: 14, borderTop: "1px solid var(--border)" }}>
+                  {stats.map((s) => (
+                    <div key={s.label}>
+                      <div style={{ fontSize: 16, fontWeight: 700, fontFamily: "Georgia, serif" }}>{s.valore}</div>
+                      <div style={{ fontSize: 9.5, color: "var(--gray-text)" }}>{s.label}</div>
+                    </div>
+                  ))}
+                </div>
+
+                <div style={{ fontSize: 11, color: "var(--gray-text)", marginTop: 14 }}>Vedi cronologia ›</div>
               </div>
-            </div>
+            </Link>
           );
         })}
       </div>
+      {profile.ruolo === "rad" && <ResetDati />}
     </div>
   );
 }

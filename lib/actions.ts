@@ -1204,3 +1204,75 @@ export async function assegnaPersonaAEvento(formData: FormData) {
 
   return { success: true };
 }
+
+export async function azzeraTask(): Promise<{ success: boolean; eliminate?: number; errore?: string }> {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, errore: "Non sei autenticato." };
+
+  const { data: me } = await supabase.from("profiles").select("ruolo").eq("id", user.id).maybeSingle();
+  if (me?.ruolo !== "rad") return { success: false, errore: "Solo il RAD può azzerare i dati." };
+
+  // Scollega le task dai resoconti Qualità, così l'eliminazione non incontra collegamenti.
+  await supabase.from("quality_report_criteri").update({ task_id: null }).not("task_id", "is", null);
+
+  const { data: eliminate, error } = await supabase.from("tasks").delete().not("id", "is", null).select("id");
+  if (error) return { success: false, errore: "Non è stato possibile eliminare le task: " + error.message };
+
+  // Notifiche collegate alle task (non bloccante se fallisce).
+  await supabase
+    .from("avvisi")
+    .delete()
+    .or("testo.ilike.Nuova task assegnata*,testo.ilike.Azione richiesta dalla Qualità*,testo.ilike.Sei stato assegnato a*");
+
+  await registraAttivita("eliminato", "task", "Azzerate tutte le task");
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/task");
+  revalidatePath("/dashboard/gestione");
+  revalidatePath("/dashboard/membri-reparto");
+  revalidatePath("/dashboard/analisi");
+  return { success: true, eliminate: eliminate?.length ?? 0 };
+}
+
+export async function azzeraValutazioni(): Promise<{ success: boolean; eliminate?: number; errore?: string }> {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, errore: "Non sei autenticato." };
+
+  const { data: me } = await supabase.from("profiles").select("ruolo").eq("id", user.id).maybeSingle();
+  if (me?.ruolo !== "rad") return { success: false, errore: "Solo il RAD può azzerare i dati." };
+
+  const { data: eliminate, error } = await supabase.from("voti_membri").delete().not("evento_id", "is", null).select("evento_id");
+  if (error) return { success: false, errore: "Non è stato possibile eliminare le valutazioni: " + error.message };
+
+  await registraAttivita("eliminato", "valutazioni", "Azzerate tutte le valutazioni dei membri");
+
+  revalidatePath("/dashboard/analisi");
+  revalidatePath("/dashboard/valutazioni");
+  revalidatePath("/dashboard");
+  return { success: true, eliminate: eliminate?.length ?? 0 };
+}
+
+export async function azzeraResoconti(): Promise<{ success: boolean; eliminate?: number; errore?: string }> {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, errore: "Non sei autenticato." };
+
+  const { data: me } = await supabase.from("profiles").select("ruolo").eq("id", user.id).maybeSingle();
+  if (me?.ruolo !== "rad") return { success: false, errore: "Solo il RAD può azzerare i dati." };
+
+  const { error: errCriteri } = await supabase.from("quality_report_criteri").delete().not("evento_id", "is", null);
+  if (errCriteri) return { success: false, errore: "Non è stato possibile eliminare le checklist: " + errCriteri.message };
+
+  const { data: eliminate, error } = await supabase.from("quality_reports").delete().not("evento_id", "is", null).select("evento_id");
+  if (error) return { success: false, errore: "Non è stato possibile eliminare i resoconti: " + error.message };
+
+  await registraAttivita("eliminato", "resoconti", "Azzerati tutti i resoconti Qualità");
+
+  revalidatePath("/dashboard/resoconti");
+  revalidatePath("/dashboard/qualita");
+  revalidatePath("/dashboard/analisi");
+  revalidatePath("/dashboard");
+  return { success: true, eliminate: eliminate?.length ?? 0 };
+}

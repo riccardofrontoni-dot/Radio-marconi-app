@@ -35,7 +35,7 @@ export default async function IMieiScriptPage({
   const { data: tuttiEventi } = await supabase
     .from("events")
     .select("id, titolo, quando, tipo, membri")
-    .in("tipo", ["diretta", "riunione"])
+    .eq("tipo", "diretta")
     .gte("quando", inizioMese.toISOString())
     .lte("quando", fineMese.toISOString())
     .order("quando", { ascending: false });
