@@ -132,7 +132,11 @@ export async function toggleTask(taskId: string, completato: boolean) {
 export async function createTask(formData: FormData) {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  const { data: profile } = await supabase.from("profiles").select("reparto").eq("id", user!.id).single();
+  const { data: profile } = await supabase.from("profiles").select("reparto, ruolo").eq("id", user!.id).single();
+
+  // Il RAD sceglie il reparto nel modulo; i capi reparto usano sempre il proprio.
+  const repartoForm = (formData.get("reparto") as string) || "";
+  const repartoTask = profile?.ruolo === "rad" && repartoForm ? repartoForm : profile?.reparto;
 
   const titolo = formData.get("titolo") as string;
   const assegnatoA = formData.get("assegnato_a") as string;
@@ -142,7 +146,7 @@ export async function createTask(formData: FormData) {
 
   await supabase.from("tasks").insert({
     titolo,
-    reparto: profile?.reparto,
+    reparto: repartoTask,
     assegnato_a: assegnatoA || null,
     data_inizio: dataInizio || null,
     puntata_data: puntataData || null,
@@ -156,7 +160,7 @@ export async function createTask(formData: FormData) {
       creato_da: user?.id,
     });
   }
-  await registraAttivita("creato", "task", `Task "${titolo}"`, profile?.reparto);
+  await registraAttivita("creato", "task", `Task "${titolo}"`, repartoTask);
 
   revalidatePath("/dashboard/gestione");
   revalidatePath("/dashboard");
@@ -1182,14 +1186,18 @@ export async function assegnaPersonaAEvento(formData: FormData) {
       ? `Scrivi lo script social per "${evento.titolo}"`
       : `Preparati per la diretta "${evento.titolo}"`;
 
-  await supabase.from("tasks").insert({
+  const { error: errTask } = await supabase.from("tasks").insert({
     titolo: titoloTask,
-    reparto: persona?.reparto ?? null,
+    reparto: persona?.reparto ?? (evento.tipo === "registrazione" ? "social" : "speaker"),
     assegnato_a: personaId,
     data_inizio: new Date().toISOString().slice(0, 10),
     puntata_data: evento.quando ? new Date(evento.quando).toISOString().slice(0, 10) : null,
     descrizione: "Generata automaticamente dal calendario.",
   });
+
+  if (errTask) {
+    return { success: false, errore: "Task non creata: " + errTask.message };
+  }
 
   await supabase.from("avvisi").insert({
     destinatario_id: personaId,

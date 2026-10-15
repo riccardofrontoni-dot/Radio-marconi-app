@@ -86,8 +86,7 @@ export default async function TaskPage({
   const { data: tuttiTaskMiei } = await supabase
     .from("tasks")
     .select("*")
-    .eq("reparto", profile.reparto)
-    .or(`assegnato_a.eq.${profile.id},assegnato_a.is.null`)
+    .or(`assegnato_a.eq.${profile.id},and(assegnato_a.is.null,reparto.eq.${profile.reparto})`)
     .order("created_at", { ascending: true });
 
   const conteggiMiei = { ritardo: 0, urgente: 0, tranquillo: 0 };
